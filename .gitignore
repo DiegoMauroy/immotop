@@ -1,0 +1,8 @@
+.venv/
+Outputs/*
+src/__pycache__/
+src/test.py
+LOG/
+app/build/
+app/dist/**
+!app/dist/*.exe
