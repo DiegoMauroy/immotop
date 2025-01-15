@@ -15,6 +15,7 @@ if __name__ == "__main__":
     # URL
     url_base = "https://www.immotop.lu/"
 
+
     # Manage folders
     Check_create_folder("LOG")
     Check_create_folder("Outputs")
@@ -24,6 +25,14 @@ if __name__ == "__main__":
                         level=logging.INFO,
                         format='%(asctime)s - %(levelname)s - %(message)s',
                         force=True)
+
+    # Initialize an instance of immotop
+    immotop = Immotop("Outputs/Immotop_{}.xlsx".format(start_time_format))
+
+    # Scrape overview pages to find the url of each property #
+    immotop.Scrape_overview_pages("https://www.immotop.lu/vente-maisons-appartements/luxembourg-pays/?criterio=rilevanza")
+
+    print(immotop.dict_href_properties)
 
     # Manage time
     stop_time = time.time()
