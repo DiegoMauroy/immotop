@@ -30,9 +30,13 @@ if __name__ == "__main__":
     immotop = Immotop("Outputs/Immotop_{}.xlsx".format(start_time_format))
 
     # Scrape overview pages to find the url of each property #
-    immotop.Scrape_overview_pages("https://www.immotop.lu/vente-maisons-appartements/luxembourg-pays/?criterio=rilevanza")
+    immotop.Scrape_overview_pages(url_base)
 
-    print(immotop.dict_href_properties)
+    # Scrape property pages
+    immotop.Scrape_property_pages()    
+        
+    # Save dataframe
+    immotop.Save_df()
 
     # Manage time
     stop_time = time.time()

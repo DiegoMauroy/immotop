@@ -1,9 +1,10 @@
+import json
 import pandas as pd
 import tqdm
 import logging
 
 from Tools.Scrape import *
-#from Tools.Tool_functions import *
+from Tools.Tool_functions import *
 
 #### Class to scrape Propertyweb ####
 class Immotop():
@@ -11,16 +12,27 @@ class Immotop():
     ## Initialization ##
     def __init__(self, filename_output):
         
-        self.filename_excel = filename_output   # filename of the output
-        self.df = pd.DataFrame()                # Dataframe to store data
+        self.filename_output = filename_output   # filename of the output
         self.dict_href_properties = {}          # dictionnary of property hrefs (use a dictionary to avoid duplicates and keep the order)
 
+        # Dataframe to store data
+        self.df_property = pd.DataFrame(columns = [
+                                                    "URL", "ID", 
+                                                    "Nom du projet",
+                                                    "Pays", "Region", "Province", "Localité", "Rue", "Code Postal", "Latitude", "Longitude", 
+                                                    "Statut", "Type", "Projet Neuf",
+                                                    "Prix", "Prix/m2"
+                                                    "Disponibilité",
+                                                    "Année de construction",
+                                                    "Surface",
+                                                    "Nombre de chambres",
+                                                    "Elévateur",
+                                                    "Classe d'isolation thermique", "Classe d'émission de gaz"
+                                                ])
+
         # headers used by "requests"
-        self.headers = {                                                                                   
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
-                            'Accept-Language': 'en-US,en;q=0.9',
-                            'Accept-Encoding': 'gzip, deflate, br',
-                            'Connection': 'keep-alive',
+        self.headers = {
+                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
                         }
     
     ## Get the number of pages in the URL ##
@@ -116,6 +128,38 @@ class Immotop():
     
         return None
     
+    ## Get the url of "child" properties ##
+    def __Get_children_url(self, url):
+
+        # Get the source code
+        source_code, _ = Web_page_source_code_robustification(url, 2, self.headers)
+        
+        # Check if the source code was scraped
+        if source_code:
+
+            # Search the tag 'script' containing the data
+            data_json = self.__Get_json_data(source_code, url)
+            if data_json:
+
+                properties_data = Get_value_dictionnary(data_json, ["props", "pageProps", "detailData", "realEstate", "properties"])
+                if properties_data:
+
+                    for property in properties_data:
+
+                        child_url = url + property.get("id")
+                        if child_url not in self.dict_href_properties:
+
+                            self.dict_href_properties[child_url] = None
+
+                else:
+
+                    logging.error("The url of the children were not scraped in : {}".format(url))
+
+            else:
+
+                logging.error("The script id='__NEXT_DATA__' was not found in {}.".format(url))
+                print("The script id='__NEXT_DATA__' was not found in {}.".format(url))
+    
     ## Scrape the overview page ##
     ## The goal is to get the url of each property contained in the overview page ##
     def __Scrape_overview_page(self, url):
@@ -135,12 +179,22 @@ class Immotop():
                     title = li.find("a", {"class" : "in-listingCardTitle"})
                     if title:
 
+                        # Get url of the page
                         href = title.get("href")
                         if href:
 
-                            if href not in self.dict_href_properties:
+                            # Check if the property has "child" property
+                            children = li.find("div", {"class" : "nd-strip is-spaced in-listingCardUnits"})
+                            if not children:
 
-                                self.dict_href_properties[href] = None
+                                if href not in self.dict_href_properties:
+
+                                    self.dict_href_properties[href] = None
+
+                            # If the property has "child" properties, scrape its page to get the url of the children 
+                            else:
+
+                                self.__Get_children_url(href)
 
                         else:
 
@@ -178,14 +232,86 @@ class Immotop():
                 # Scrape data
                 self.__Scrape_overview_page(url)
 
+            break
+
         logging.info("End to scrape overview pages.\n")
         print("End to scrape overview pages.\n")
 
-    ## Get the data contained in a tag 'script' starting with 'window.AT_HOME_APP' ##
+    ## Get the data contained in a tag 'script' with id='__NEXT_DATA__' ##
     ## Return data in a dictionnary (None if data have not been found) ##
     def __Get_json_data(self, source_code, url):
 
-        
+        # Search the tag <script id='__NEXT_DATA__'> containing the data
+        script_data = source_code.find("script", {"id" : "__NEXT_DATA__"})
+        if script_data:
+
+            # Try to store data in a dictionnary
+            try:
+
+                data = json.loads(script_data.get_text(strip=True))
+                return data
+                
+            except json.JSONDecodeError as e:
+                
+                logging.warning("Error json.loads in {} : {}".format(url, e))
+
+        else:
+            
+            logging.warning("The tag <script id='__NEXT_DATA__'> doesn't exist in : {}.".format(url))
+
+        return None
+    
+    ## Transfer data from dictionnary to dataframe ##
+    def __Transfer_dictio_to_dataframe(self, dict_data, index, url):
+
+        # Focus on a part of the dictionnary
+        data = Get_value_dictionnary(dict_data, ["props", "pageProps", "detailData", "realEstate"])
+        if data:
+
+            self.df_property.at[index, "ID"]                            = data.get("id")
+            self.df_property.at[index, "Nom du projet"]                 = data.get("")
+            self.df_property.at[index, "Statut"]                        = data.get("contractValue")
+            self.df_property.at[index, "Type"]                          = data.get("typologyValue")
+            self.df_property.at[index, "Projet Neuf"]                   = data.get("isNew")
+
+            property_data = data.get("properties")
+            if property_data:
+
+                property_data = property_data[0] # properties is a list
+
+                location_data = property_data.get("location")
+                if location_data:
+            
+                    self.df_property.at[index, "Pays"]                  = Get_value_dictionnary(location_data, ["nation", "name"])
+                    self.df_property.at[index, "Region"]                = location_data.get("region")
+                    self.df_property.at[index, "Province"]              = location_data.get("province")
+                    self.df_property.at[index, "Localité"]              = location_data.get("city")
+                    self.df_property.at[index, "Rue"]                   = location_data.get("address")
+                    self.df_property.at[index, "Code Postal"]           = location_data.get("cityId")
+                    self.df_property.at[index, "Latitude"]              = location_data.get("latitude")
+                    self.df_property.at[index, "Longitude"]             = location_data.get("longitude")
+
+                else:
+
+                    logging.warning("'location' was not found in the json : {}.".format(url))
+
+                self.df_property.at[index, "Prix"]                      = Get_value_dictionnary(property_data, ["price", "value"])
+                self.df_property.at[index, "Prix/m2"]                   = Get_value_dictionnary(property_data, ["price", "pricePerSquareMeter"]).replace("€/m²", "").replace(" ", "") if Get_value_dictionnary(property_data, ["price", "pricePerSquareMeter"]) else None
+                self.df_property.at[index, "availability"]              = property_data.get("availability")
+                self.df_property.at[index, "Surface"]                   = property_data.get("surface").replace("m2", "") if data.get("surface") else None
+                self.df_property.at[index, "Nombre de chambres"]        = property_data.get("bedRoomsNumber")
+                self.df_property.at[index, "Salle de bain/douche"]      = property_data.get("bathrooms")
+                self.df_property.at[index, "Année de construction"]     = property_data.get("buildingYear")
+                self.df_property.at[index, "Elévateur"]                 = property_data.get("elevator")
+
+            else:
+
+                logging.warning("'properties' was not found in the json : {}.".format(url))
+
+        else:
+
+            logging.warning("The data of {} were not scrapped.".format(url))
+            print("The data of {} were not scrapped.".format(url)) 
 
     ## Scrape property page ##
     def __Scrape_property_data(self, url):
@@ -197,13 +323,22 @@ class Immotop():
         if source_code:
 
             # First free index in the dataframe
-            index = len(self.df_configuration)
+            index = len(self.df_property)
 
             # Add the URL to the dataframe. If the source code was not scraped, that means that the url won't be added in the dataframe.
-            self.df.loc[index, "URL"] = url
+            self.df_property.at[index, "URL"] = url
 
             # Search the tag 'script' containing the data
             data_json = self.__Get_json_data(source_code, url)
+            if data_json:
+
+                #Write_json('test_solo_bel.json', data_json)
+                self.__Transfer_dictio_to_dataframe(data_json, index, url)
+
+            else:
+
+                logging.error("The script id='__NEXT_DATA__' was not found in {}.".format(url))
+                print("The script id='__NEXT_DATA__' was not found in {}.".format(url))
 
     ## Scrape the property pages ##
     def Scrape_property_pages(self):
@@ -220,3 +355,13 @@ class Immotop():
 
         logging.info("End to scrape property pages.\n")
         print("End to scrape property pages.\n")
+
+    ## Save data ##
+    def Save_df(self):
+
+        # Write the xlsx
+        with pd.ExcelWriter(self.filename_output, engine = "xlsxwriter") as writer:
+        
+            self.df_property.to_excel(writer, sheet_name = "Propriétés", index = False)
+        
+        logging.info("The dataframes were saved at '{}'.\n".format(self.filename_output))
