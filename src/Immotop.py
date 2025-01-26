@@ -10,31 +10,101 @@ from Tools.Tool_functions import *
 class Immotop():
 
     ## Initialization ##
-    def __init__(self, filename_output):
+    def __init__(self, filename_output, json_create_url, url_template, translate_to_url):
         
-        self.filename_output = filename_output   # filename of the output
-        self.dict_href_properties = {}          # dictionnary of property hrefs (use a dictionary to avoid duplicates and keep the order)
+        self.filename_output        = filename_output       # filename of the output
+        self.dict_href_properties   = {}                    # dictionnary of property hrefs (use a dictionary to avoid duplicates and keep the order)
+        self.json_create_url        = json_create_url       # json containing the filters used to create the url
+        self.url_template           = url_template          # template to create the url to be scraped
+        self.translate_to_url       = translate_to_url      # dictionnary used to translate the filters into url to be scraped
+        self.urls_to_scrap          = self.__Create_url()   # list of url to scrap
 
         # Dataframe to store data
-        self.df_property = pd.DataFrame(columns = [
-                                                    "URL", "ID", 
-                                                    "Nom du projet",
-                                                    "Pays", "Region", "Province", "Localité", "Rue", "Code Postal", "Latitude", "Longitude", 
-                                                    "Statut", "Type", "Projet Neuf",
-                                                    "Prix", "Prix/m2"
-                                                    "Disponibilité",
-                                                    "Année de construction",
-                                                    "Surface",
-                                                    "Nombre de chambres",
-                                                    "Elévateur",
-                                                    "Classe d'isolation thermique", "Classe d'émission de gaz"
-                                                ])
+        self.df_property = pd.DataFrame(columns =   [
+                                                        "URL", "ID", 
+                                                        "Nom",
+                                                        "Pays", #"Region", "Province", "Localité", "Rue", "Code Postal", 
+                                                        "region",
+                                                        "province",
+                                                        "provinceId",
+                                                        "city",
+                                                        "cityId",
+                                                        "macrozone",
+                                                        "macrozoneId",
+                                                        "microzone",
+                                                        "locality",
+                                                        "address",
+                                                        "streetNumber",
+                                                        "Latitude", "Longitude", 
+                                                        "Statut", "Type", "Projet Neuf",
+                                                        "Prix", "Prix/m2",
+                                                        "Disponibilité",
+                                                        "Année de construction",
+                                                        "Surface",
+                                                        "Nombre de chambres",
+                                                        "Nombre total d'étages", "Etage",
+                                                        "Elévateur",
+                                                        "Consommation d'énergie", "Classe d'isolation thermique", "Chauffage"
+                                                    ])
 
         # headers used by "requests"
         self.headers = {
                             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
                         }
-    
+        
+    ## Create urls to be scraped ##
+    ## Return a list with the url ##
+    def __Create_url(self):
+
+        urls = []
+
+        # Get the location to scrap
+        locations       = [] 
+        json_locations  = self.json_create_url.get("location")
+        if json_locations:
+
+            for json_location, to_scrap in json_locations.items():
+
+                if to_scrap:
+
+                    locations.append(json_location)
+
+        # Log an error if there aren't locations to be scraped
+        if not locations:
+
+            logging.error("There is no location to scrap. Check your 'config.json'.")
+
+        # Create the url according to the type of property to be retrieved
+        for key1, value1 in self.json_create_url.items():
+
+            if key1 != "location":
+
+                # value1 is a dictionnary if the type has subtypes
+                if isinstance(value1, dict):
+
+                    for key2, value2 in value1.items():
+
+                        # if the subproperty has to be scraped, add its url for each location to be scraped
+                        if value2:
+
+                            for location in locations:
+                                
+                                urls.append(self.url_template.format(type       = "&idCategoria=" + self.translate_to_url[key1], 
+                                                                     subtype    = "&idTipologia[0]=" + self.translate_to_url[key2], 
+                                                                     location   = "&idNazione=" + self.translate_to_url[location]))
+                
+                # There aren't subtypes
+                # if the type has to be scraped, add its url for each location to be scraped
+                elif value1:
+
+                    for location in locations:
+                                
+                        urls.append(self.url_template.format(type       = "&idCategoria=" + self.translate_to_url[key1], 
+                                                             subtype    = "", 
+                                                             location   = "&idNazione=" + self.translate_to_url[location]))
+        
+        return urls
+
     ## Get the number of pages in the URL ##
     ## Return the number of pages ##
     def __Get_page_count(self, url):
@@ -158,7 +228,6 @@ class Immotop():
             else:
 
                 logging.error("The script id='__NEXT_DATA__' was not found in {}.".format(url))
-                print("The script id='__NEXT_DATA__' was not found in {}.".format(url))
     
     ## Scrape the overview page ##
     ## The goal is to get the url of each property contained in the overview page ##
@@ -268,42 +337,68 @@ class Immotop():
         data = Get_value_dictionnary(dict_data, ["props", "pageProps", "detailData", "realEstate"])
         if data:
 
+            # In props/pageProps/detailData/realEstate
             self.df_property.at[index, "ID"]                            = data.get("id")
-            self.df_property.at[index, "Nom du projet"]                 = data.get("")
+            self.df_property.at[index, "Nom"]                           = data.get("title")
             self.df_property.at[index, "Statut"]                        = data.get("contractValue")
-            self.df_property.at[index, "Type"]                          = data.get("typologyValue")
             self.df_property.at[index, "Projet Neuf"]                   = data.get("isNew")
 
+            # In props/pageProps/detailData/realEstate/properties[0]
             property_data = data.get("properties")
             if property_data:
 
-                property_data = property_data[0] # properties is a list
+                property_data = property_data[0]
 
-                location_data = property_data.get("location")
-                if location_data:
-            
-                    self.df_property.at[index, "Pays"]                  = Get_value_dictionnary(location_data, ["nation", "name"])
-                    self.df_property.at[index, "Region"]                = location_data.get("region")
-                    self.df_property.at[index, "Province"]              = location_data.get("province")
-                    self.df_property.at[index, "Localité"]              = location_data.get("city")
-                    self.df_property.at[index, "Rue"]                   = location_data.get("address")
-                    self.df_property.at[index, "Code Postal"]           = location_data.get("cityId")
-                    self.df_property.at[index, "Latitude"]              = location_data.get("latitude")
-                    self.df_property.at[index, "Longitude"]             = location_data.get("longitude")
-
-                else:
-
-                    logging.warning("'location' was not found in the json : {}.".format(url))
-
-                self.df_property.at[index, "Prix"]                      = Get_value_dictionnary(property_data, ["price", "value"])
-                self.df_property.at[index, "Prix/m2"]                   = Get_value_dictionnary(property_data, ["price", "pricePerSquareMeter"]).replace("€/m²", "").replace(" ", "") if Get_value_dictionnary(property_data, ["price", "pricePerSquareMeter"]) else None
-                self.df_property.at[index, "availability"]              = property_data.get("availability")
-                self.df_property.at[index, "Surface"]                   = property_data.get("surface").replace("m2", "") if data.get("surface") else None
+                self.df_property.at[index, "Type"]                      = property_data.get("typologyValue")
+                self.df_property.at[index, "Disponibilité"]             = property_data.get("availability")
+                self.df_property.at[index, "Surface"]                   = property_data.get("surfaceValue").replace("m2", "") if property_data.get("surfaceValue") else None
                 self.df_property.at[index, "Nombre de chambres"]        = property_data.get("bedRoomsNumber")
                 self.df_property.at[index, "Salle de bain/douche"]      = property_data.get("bathrooms")
                 self.df_property.at[index, "Année de construction"]     = property_data.get("buildingYear")
                 self.df_property.at[index, "Elévateur"]                 = property_data.get("elevator")
+                self.df_property.at[index, "garage"]                    = property_data.get("garage")
+                self.df_property.at[index, "Nombre total d'étages"]     = property_data.get("floors")
+                self.df_property.at[index, "Etage"]                     = Get_value_dictionnary(property_data, ["floor", "value"])
 
+                # In props/pageProps/detailData/realEstate/properties[0]/energy
+                energy_data = property_data.get("energy")
+                if energy_data:
+
+                    self.df_property.at[index, "Consommation d'énergie"]        = Get_value_dictionnary(energy_data, ["class", "name"])
+                    self.df_property.at[index, "Classe d'isolation thermique"]  = Get_value_dictionnary(energy_data, ["thermalInsulation", "consumption", "name"])
+                    self.df_property.at[index, "Chauffage"]                     = energy_data.get("heatingType")
+
+                # In props/pageProps/detailData/realEstate/properties[0]/location
+                location_data = property_data.get("location")
+                if location_data:
+                    
+                    self.df_property.at[index, "Pays"]                  = Get_value_dictionnary(location_data, ["nation", "name"])
+                    self.df_property.at[index, "region"]                = location_data.get("region")
+                    self.df_property.at[index, "province"]              = location_data.get("province")
+                    self.df_property.at[index, "provinceId"]            = location_data.get("provinceId")
+                    self.df_property.at[index, "city"]                  = location_data.get("city")
+                    self.df_property.at[index, "cityId"]                = location_data.get("cityId")
+                    self.df_property.at[index, "macrozone"]             = location_data.get("macrozone")
+                    self.df_property.at[index, "macrozoneId"]           = location_data.get("macrozoneId")
+                    self.df_property.at[index, "microzone"]             = location_data.get("microzone")
+                    self.df_property.at[index, "locality"]              = location_data.get("locality")
+                    self.df_property.at[index, "address"]               = location_data.get("address")
+                    self.df_property.at[index, "streetNumber"]          = location_data.get("streetNumber")
+                    # self.df_property.at[index, "Region"]                = location_data.get("region")
+                    # self.df_property.at[index, "Province"]              = location_data.get("province")
+                    # self.df_property.at[index, "Localité"]              = location_data.get("city")
+                    # self.df_property.at[index, "Rue"]                   = location_data.get("address")
+                    # self.df_property.at[index, "Code Postal"]           = location_data.get("cityId")
+                    self.df_property.at[index, "Latitude"]              = location_data.get("latitude")
+                    self.df_property.at[index, "Longitude"]             = location_data.get("longitude")
+
+                # In props/pageProps/detailData/realEstate/properties[0]/price
+                price_data = property_data.get("price")
+                if price_data:
+                    
+                    self.df_property.at[index, "Prix"]                      = price_data.get("value")
+                    self.df_property.at[index, "Prix/m2"]                   = price_data.get("pricePerSquareMeter").replace("€/m²", "").replace(" ", "") if price_data.get("pricePerSquareMeter") else None
+                
             else:
 
                 logging.warning("'properties' was not found in the json : {}.".format(url))
@@ -311,7 +406,6 @@ class Immotop():
         else:
 
             logging.warning("The data of {} were not scrapped.".format(url))
-            print("The data of {} were not scrapped.".format(url)) 
 
     ## Scrape property page ##
     def __Scrape_property_data(self, url):
@@ -338,7 +432,6 @@ class Immotop():
             else:
 
                 logging.error("The script id='__NEXT_DATA__' was not found in {}.".format(url))
-                print("The script id='__NEXT_DATA__' was not found in {}.".format(url))
 
     ## Scrape the property pages ##
     def Scrape_property_pages(self):
