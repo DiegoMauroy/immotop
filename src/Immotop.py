@@ -69,6 +69,17 @@ class Immotop():
 
                     locations.append(json_location)
 
+        # Sales/Rent ?
+        status      = []
+        json_status = self.json_create_url.get("statut")
+        if json_status:
+
+            for json_statu, to_scrap in json_status.items():
+
+                if to_scrap:
+
+                    status.append(json_statu)
+
         # Log an error if there aren't locations to be scraped
         if not locations:
 
@@ -77,7 +88,7 @@ class Immotop():
         # Create the url according to the type of property to be retrieved
         for key1, value1 in self.json_create_url.items():
 
-            if key1 != "location":
+            if key1 != "location" and key1 != "statut":
 
                 # value1 is a dictionnary if the type has subtypes
                 if isinstance(value1, dict):
@@ -89,17 +100,21 @@ class Immotop():
 
                             for location in locations:
                                 
-                                urls.append(self.url_template.format(type       = "&idCategoria=" + self.translate_to_url[key1], 
-                                                                     subtype    = "&idTipologia[0]=" + self.translate_to_url[key2], 
-                                                                     location   = "&idNazione=" + self.translate_to_url[location]))
+                                for statu in status:
+
+                                    urls.append(self.url_template.format(statut     = "idContratto=" + self.translate_to_url[statu],
+                                                                         type       = "&idCategoria=" + self.translate_to_url[key1], 
+                                                                         subtype    = "&idTipologia[0]=" + self.translate_to_url[key2], 
+                                                                         location   = "&idNazione=" + self.translate_to_url[location]))
                 
                 # There aren't subtypes
                 # if the type has to be scraped, add its url for each location to be scraped
                 elif value1:
-
-                    for location in locations:
                                 
-                        urls.append(self.url_template.format(type       = "&idCategoria=" + self.translate_to_url[key1], 
+                    for statu in status:
+
+                        urls.append(self.url_template.format(statut     = "idContratto=" + self.translate_to_url[statu],
+                                                             type       = "&idCategoria=" + self.translate_to_url[key1], 
                                                              subtype    = "", 
                                                              location   = "&idNazione=" + self.translate_to_url[location]))
         
@@ -301,8 +316,6 @@ class Immotop():
                 # Scrape data
                 self.__Scrape_overview_page(url)
 
-            break
-
         logging.info("End to scrape overview pages.\n")
         print("End to scrape overview pages.\n")
 
@@ -351,7 +364,7 @@ class Immotop():
 
                 self.df_property.at[index, "Type"]                      = property_data.get("typologyValue")
                 self.df_property.at[index, "Disponibilité"]             = property_data.get("availability")
-                self.df_property.at[index, "Surface"]                   = property_data.get("surfaceValue").replace("m2", "") if property_data.get("surfaceValue") else None
+                self.df_property.at[index, "Surface"]                   = property_data.get("surfaceValue").replace("m²", "") if property_data.get("surfaceValue") else None
                 self.df_property.at[index, "Nombre de chambres"]        = property_data.get("bedRoomsNumber")
                 self.df_property.at[index, "Salle de bain/douche"]      = property_data.get("bathrooms")
                 self.df_property.at[index, "Année de construction"]     = property_data.get("buildingYear")

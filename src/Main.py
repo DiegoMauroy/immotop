@@ -5,12 +5,14 @@ from datetime import timedelta
 from Immotop import *
 from Tools.Tool_functions import *
 
-url_template = "https://www.immotop.lu/search-list/?idContratto=1{type}{subtype}&criterio=rilevanza&__lang=fr{location}"
+url_template = "https://www.immotop.lu/search-list/?{statut}{type}{subtype}&criterio=rilevanza&__lang=fr{location}"
 translate_to_url = {    
                         "Belgique"                          : "BE",
                         "France"                            : "FR",
                         "Luxembourg"                        : "LU",
                         "Allemagne"                         : "DE",
+                        "vente"                             : "1",
+                        "location"                          : "2",
                         "Maisons - Appartements"            : "1",
                         "Appartement"                       : "4",
                         "Penthouse-Mansarde"                : "5",
