@@ -34,10 +34,13 @@ if __name__ == "__main__":
     translate_to_url = Read_json("Inputs/translate_to_url.json")
 
     # Initialize an instance of immotop
-    immotop = Immotop("Outputs/Immotop_{}.xlsx".format(start_time_format), data_json, url_template, translate_to_url)
+    immotop = Immotop("Outputs/Immotop_{}.xlsx".format(start_time_format))
+
+    # list of url to scrape
+    scraped_urls = immotop.Create_url(data_json, url_template, translate_to_url)   
 
     # Scrape overview pages to find the url of each property #
-    for scraped_url in immotop.urls_to_scrap:
+    for scraped_url in scraped_urls:
 
         print("Scrape {}".format(scraped_url))
         logging.info("Scrape {}".format(scraped_url))

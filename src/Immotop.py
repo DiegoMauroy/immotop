@@ -14,10 +14,6 @@ class Immotop():
         
         self.filename_output        = filename_output       # filename of the output
         self.dict_href_properties   = {}                    # dictionnary of property hrefs (use a dictionary to avoid duplicates and keep the order)
-        self.json_create_url        = json_create_url       # json containing the filters used to create the url
-        self.url_template           = url_template          # template to create the url to be scraped
-        self.translate_to_url       = translate_to_url      # dictionnary used to translate the filters into url to be scraped
-        self.urls_to_scrap          = self.__Create_url()   # list of url to scrape
 
         # Dataframe to store data
         self.df_property = pd.DataFrame(columns =   [
@@ -42,14 +38,17 @@ class Immotop():
                         }
         
     ## Create urls to be scraped ##
+    ## json_create_url  => json containing the filters used to create the url ##
+    ## url_template     => template to create the url to be scraped ##
+    ## translate_to_url => dictionnary used to translate the filters into url to be scraped ##
     ## Return a list with the url ##
-    def __Create_url(self):
+    def Create_url(self, json_create_url, url_template, translate_to_url):
 
         urls = []
 
         # Get the location to scrape
         locations       = [] 
-        json_locations  = self.json_create_url.get("location")
+        json_locations  = json_create_url.get("location")
         if json_locations:
 
             for json_location, to_scrap in json_locations.items():
@@ -60,7 +59,7 @@ class Immotop():
 
         # Sales/Rent ?
         status      = []
-        json_status = self.json_create_url.get("statut")
+        json_status = json_create_url.get("statut")
         if json_status:
 
             for json_statu, to_scrap in json_status.items():
@@ -70,12 +69,12 @@ class Immotop():
                     status.append(json_statu)
 
         # Log an error if there aren't locations to be scraped
-        if not locations:
+        if not locations or not status:
 
-            logging.error("There is no location to scrape. Check your 'config.json'.")
+            logging.error("There is no location/statut to scrape. Check your 'config.json'.")
 
-        # Create the url according to the type of property to be retrieved
-        for key1, value1 in self.json_create_url.items():
+        # Create the urls according to the type of property to be retrieved
+        for key1, value1 in json_create_url.items():
 
             if key1 != "location" and key1 != "statut":
 
@@ -84,28 +83,30 @@ class Immotop():
 
                     for key2, value2 in value1.items():
 
-                        # if the subproperty has to be scraped, add its url for each location to be scraped
+                        # if the subproperty has to be scraped, add its url for each location and status to be scraped
                         if value2:
 
                             for location in locations:
                                 
                                 for statu in status:
 
-                                    urls.append(self.url_template.format(statut     = "idContratto=" + self.translate_to_url[statu],
-                                                                         type       = "&idCategoria=" + self.translate_to_url[key1], 
-                                                                         subtype    = "&idTipologia[0]=" + self.translate_to_url[key2], 
-                                                                         location   = "&idNazione=" + self.translate_to_url[location]))
+                                    urls.append(url_template.format(statut     = "idContratto=" + translate_to_url[statu],
+                                                                    type       = "&idCategoria=" + translate_to_url[key1], 
+                                                                    subtype    = "&idTipologia[0]=" + translate_to_url[key2], 
+                                                                    location   = "&idNazione=" + translate_to_url[location]))
                 
                 # There aren't subtypes
-                # if the type has to be scraped, add its url for each location to be scraped
+                # if the type has to be scraped, add its url for each location and status to be scraped
                 elif value1:
-                                
-                    for statu in status:
 
-                        urls.append(self.url_template.format(statut     = "idContratto=" + self.translate_to_url[statu],
-                                                             type       = "&idCategoria=" + self.translate_to_url[key1], 
-                                                             subtype    = "", 
-                                                             location   = "&idNazione=" + self.translate_to_url[location]))
+                    for location in locations:
+                                
+                        for statu in status:
+
+                            urls.append(url_template.format(statut     = "idContratto=" + translate_to_url[statu],
+                                                            type       = "&idCategoria=" + translate_to_url[key1], 
+                                                            subtype    = "", 
+                                                            location   = "&idNazione=" + translate_to_url[location]))
         
         return urls
 
@@ -158,6 +159,7 @@ class Immotop():
 
                 logging.warning("The tag <div class='in-pagination__list'> doesn't exist in {}.".format(url))
 
+        logging.info("Number of page : {}.".format(1))
         return 1
 
     ## Get the url of a specific page ##  
