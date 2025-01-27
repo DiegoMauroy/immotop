@@ -17,7 +17,7 @@ class Immotop():
         self.json_create_url        = json_create_url       # json containing the filters used to create the url
         self.url_template           = url_template          # template to create the url to be scraped
         self.translate_to_url       = translate_to_url      # dictionnary used to translate the filters into url to be scraped
-        self.urls_to_scrap          = self.__Create_url()   # list of url to scrap
+        self.urls_to_scrap          = self.__Create_url()   # list of url to scrape
 
         # Dataframe to store data
         self.df_property = pd.DataFrame(columns =   [
@@ -58,7 +58,7 @@ class Immotop():
 
         urls = []
 
-        # Get the location to scrap
+        # Get the location to scrape
         locations       = [] 
         json_locations  = self.json_create_url.get("location")
         if json_locations:
@@ -83,7 +83,7 @@ class Immotop():
         # Log an error if there aren't locations to be scraped
         if not locations:
 
-            logging.error("There is no location to scrap. Check your 'config.json'.")
+            logging.error("There is no location to scrape. Check your 'config.json'.")
 
         # Create the url according to the type of property to be retrieved
         for key1, value1 in self.json_create_url.items():
@@ -386,22 +386,13 @@ class Immotop():
                 if location_data:
                     
                     self.df_property.at[index, "Pays"]                  = Get_value_dictionnary(location_data, ["nation", "name"])
-                    self.df_property.at[index, "region"]                = location_data.get("region")
-                    self.df_property.at[index, "province"]              = location_data.get("province")
-                    self.df_property.at[index, "provinceId"]            = location_data.get("provinceId")
-                    self.df_property.at[index, "city"]                  = location_data.get("city")
-                    self.df_property.at[index, "cityId"]                = location_data.get("cityId")
-                    self.df_property.at[index, "macrozone"]             = location_data.get("macrozone")
-                    self.df_property.at[index, "macrozoneId"]           = location_data.get("macrozoneId")
-                    self.df_property.at[index, "microzone"]             = location_data.get("microzone")
+                    self.df_property.at[index, "Province"]              = location_data.get("province")
+                    self.df_property.at[index, "City"]                  = location_data.get("city")
+                    self.df_property.at[index, "Macrozone"]             = location_data.get("macrozone")
+                    self.df_property.at[index, "MacrozoneId"]           = location_data.get("macrozoneId")
                     self.df_property.at[index, "locality"]              = location_data.get("locality")
-                    self.df_property.at[index, "address"]               = location_data.get("address")
-                    self.df_property.at[index, "streetNumber"]          = location_data.get("streetNumber")
-                    # self.df_property.at[index, "Region"]                = location_data.get("region")
-                    # self.df_property.at[index, "Province"]              = location_data.get("province")
-                    # self.df_property.at[index, "Localité"]              = location_data.get("city")
-                    # self.df_property.at[index, "Rue"]                   = location_data.get("address")
-                    # self.df_property.at[index, "Code Postal"]           = location_data.get("cityId")
+                    self.df_property.at[index, "Adresse"]               = location_data.get("address")
+                    self.df_property.at[index, "Numéro"]                = location_data.get("streetNumber")
                     self.df_property.at[index, "Latitude"]              = location_data.get("latitude")
                     self.df_property.at[index, "Longitude"]             = location_data.get("longitude")
 
