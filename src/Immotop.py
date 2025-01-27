@@ -23,18 +23,7 @@ class Immotop():
         self.df_property = pd.DataFrame(columns =   [
                                                         "URL", "ID", 
                                                         "Nom",
-                                                        "Pays", #"Region", "Province", "Localité", "Rue", "Code Postal", 
-                                                        "region",
-                                                        "province",
-                                                        "provinceId",
-                                                        "city",
-                                                        "cityId",
-                                                        "macrozone",
-                                                        "macrozoneId",
-                                                        "microzone",
-                                                        "locality",
-                                                        "address",
-                                                        "streetNumber",
+                                                        "Pays", "Province", "City", "Macrozone", "MacrozoneId", "Adresse", "Numéro",
                                                         "Latitude", "Longitude", 
                                                         "Statut", "Type", "Projet Neuf",
                                                         "Prix", "Prix/m2",
@@ -390,7 +379,6 @@ class Immotop():
                     self.df_property.at[index, "City"]                  = location_data.get("city")
                     self.df_property.at[index, "Macrozone"]             = location_data.get("macrozone")
                     self.df_property.at[index, "MacrozoneId"]           = location_data.get("macrozoneId")
-                    self.df_property.at[index, "locality"]              = location_data.get("locality")
                     self.df_property.at[index, "Adresse"]               = location_data.get("address")
                     self.df_property.at[index, "Numéro"]                = location_data.get("streetNumber")
                     self.df_property.at[index, "Latitude"]              = location_data.get("latitude")

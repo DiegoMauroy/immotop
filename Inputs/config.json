@@ -1,0 +1,46 @@
+{
+    "location"                      :   {
+                                            "Belgique"                  :   false,
+                                            "France"                    :   false,
+                                            "Luxembourg"                :   true,
+                                            "Allemagne"                 :   false           
+                                        },
+    "statut"                        :   {
+                                            "vente"                     : true,
+                                            "location"                  : true
+                                        },
+    "Maisons - Appartements"        :   {
+                                            "Appartement"               : true,
+                                            "Penthouse-Mansarde"        : true,
+                                            "Duplex - Triplex"          : true,
+                                            "Maison"                    : true,
+                                            "Loft"                      : true,
+                                            "Studio"                    : true,
+                                            "Maison de campagne"        : true,
+                                            "Villa"                     : true
+                                        },
+    "Immobilier neuf"               :   {
+                                            "Appartement neuf"          : false,
+                                            "Penthouse-Mansarde neuf"   : false,
+                                            "Loft neuf"                 : false,
+                                            "Villa - Pavillon"          : false,
+                                            "Box Auto"                  : false,
+                                            "Bureau"                    : false,
+                                            "Magasin"                   : false,
+                                            "Entrepot"                  : false,
+                                            "Hangar"                    : false
+                                        },
+    "Box - Parking"                 :   false,
+    "Immeubles - Edifices"          :   false,
+    "Bureaux - coworking"           :   false,
+    "Magasins - Locaux commerciaux" :   {
+                                            "Local commercial"          : false,
+                                            "Activite commercial"       : false
+                                        },
+    "Entrepots - depots"            :   false,
+    "Hangar - Locaux industriels"   :   false,
+    "Terrains"                      :   {
+                                            "Terrain Agricole"          : false,
+                                            "Terrain constructible"     : false
+                                        }
+}
