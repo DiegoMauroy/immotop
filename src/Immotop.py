@@ -10,7 +10,7 @@ from Tools.Tool_functions import *
 class Immotop():
 
     ## Initialization ##
-    def __init__(self, filename_output, json_create_url, url_template, translate_to_url):
+    def __init__(self, filename_output):
         
         self.filename_output        = filename_output       # filename of the output
         self.dict_href_properties   = {}                    # dictionnary of property hrefs (use a dictionary to avoid duplicates and keep the order)
