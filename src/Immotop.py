@@ -17,12 +17,12 @@ class Immotop():
 
         # Dataframe to store data
         self.df_property = pd.DataFrame(columns =   [
-                                                        "URL", "ID", 
+                                                        "URL", "ID", "ID parent",
                                                         "Nom",
                                                         "Pays", "Province", "City", "Macrozone", "MacrozoneId", "Adresse", "Numéro",
                                                         "Latitude", "Longitude", 
                                                         "Statut", "Type", "Projet Neuf",
-                                                        "Prix", "Prix/m2",
+                                                        "Prix", "Prix min", "Prix max", "Prix/m2",
                                                         "Disponibilité",
                                                         "Année de construction",
                                                         "Surface",
@@ -90,10 +90,10 @@ class Immotop():
                                 
                                 for statu in status:
 
-                                    urls["{location}_{statu}_{key1}_{key2}"] = url_template.format(statut     = "idContratto=" + translate_to_url[statu],
-                                                                                                   type       = "&idCategoria=" + translate_to_url[key1], 
-                                                                                                   subtype    = "&idTipologia[0]=" + translate_to_url[key2], 
-                                                                                                   location   = "&idNazione=" + translate_to_url[location])
+                                    urls["{}/{}/{}/{}".format(location, statu, key1, key2)] = url_template.format(statut     = "idContratto=" + translate_to_url[statu],
+                                                                                                                  type       = "&idCategoria=" + translate_to_url[key1], 
+                                                                                                                  subtype    = "&idTipologia[0]=" + translate_to_url[key2], 
+                                                                                                                  location   = "&idNazione=" + translate_to_url[location])
                 
                 # There aren't subtypes
                 # if the type has to be scraped, add its url for each location and status to be scraped
@@ -103,10 +103,10 @@ class Immotop():
                                 
                         for statu in status:
 
-                            urls["{location}_{statu}_{key1}"] = url_template.format(statut     = "idContratto=" + translate_to_url[statu],
-                                                                                    type       = "&idCategoria=" + translate_to_url[key1], 
-                                                                                    subtype    = "", 
-                                                                                    location   = "&idNazione=" + translate_to_url[location])
+                            urls["{}/{}/{}".format(location, statu, key1)] = url_template.format(statut     = "idContratto=" + translate_to_url[statu],
+                                                                                                 type       = "&idCategoria=" + translate_to_url[key1], 
+                                                                                                 subtype    = "", 
+                                                                                                 location   = "&idNazione=" + translate_to_url[location])
         
         return urls
 
@@ -246,10 +246,14 @@ class Immotop():
 
                     for property in properties_data:
 
-                        child_url = url + property.get("id")
-                        if child_url not in self.dict_href_properties:
+                        id = property.get("id")
+                        # Check that it is not the id of the "Parent" property
+                        if id not in url:
 
-                            self.dict_href_properties[child_url] = None
+                            child_url = url + id
+                            if child_url not in self.dict_href_properties:
+
+                                self.dict_href_properties[child_url] = None
 
                 else:
 
@@ -282,16 +286,12 @@ class Immotop():
                         href = title.get("href")
                         if href:
 
-                            # Check if the property has "child" property
-                            children = li.find("div", {"class" : "nd-strip is-spaced in-listingCardUnits"})
-                            if not children:
+                            if href not in self.dict_href_properties:
 
-                                if href not in self.dict_href_properties:
-
-                                    self.dict_href_properties[href] = None
+                                self.dict_href_properties[href] = None
 
                             # If the property has "child" properties, scrape its page to get the url of the children 
-                            else:
+                            if li.find("div", {"class" : "nd-strip is-spaced in-listingCardUnits"}):
 
                                 self.__Get_children_url(href)
 
@@ -338,12 +338,14 @@ class Immotop():
     ## Transfer data from dictionnary to dataframe ##
     def __Transfer_dictio_to_dataframe(self, dict_data, index, url):
 
+        # Get parent ID
+        self.df_property.at[index, "ID parent"]                        = Get_value_dictionnary(dict_data, ["props", "pageProps", "parentId"])
+
         # Focus on a part of the dictionnary
         data = Get_value_dictionnary(dict_data, ["props", "pageProps", "detailData", "realEstate"])
         if data:
 
             # In props/pageProps/detailData/realEstate
-            self.df_property.at[index, "ID"]                            = data.get("id")
             self.df_property.at[index, "Nom"]                           = data.get("title")
             self.df_property.at[index, "Statut"]                        = data.get("contractValue")
             self.df_property.at[index, "Projet Neuf"]                   = data.get("isNew")
@@ -354,6 +356,7 @@ class Immotop():
 
                 property_data = property_data[0]
 
+                self.df_property.at[index, "ID"]                        = property_data.get("id")
                 self.df_property.at[index, "Type"]                      = property_data.get("typologyValue")
                 self.df_property.at[index, "Disponibilité"]             = property_data.get("availability")
                 self.df_property.at[index, "Surface"]                   = property_data.get("surfaceValue").replace("m²", "") if property_data.get("surfaceValue") else None
@@ -392,7 +395,9 @@ class Immotop():
                 if price_data:
                     
                     self.df_property.at[index, "Prix"]                      = price_data.get("value")
-                    self.df_property.at[index, "Prix/m2"]                   = price_data.get("pricePerSquareMeter").replace("€/m²", "").replace(" ", "") if price_data.get("pricePerSquareMeter") else None
+                    self.df_property.at[index, "Prix min"]                  = "".join(price_data.get("minValue").replace("€", "").split(" ")) if price_data.get("minValue") else None
+                    self.df_property.at[index, "Prix max"]                  = "".join(price_data.get("maxValue").replace("€", "").split(" ")) if price_data.get("maxValue") else None
+                    self.df_property.at[index, "Prix/m2"]                   = "".join(price_data.get("pricePerSquareMeter").replace("€/m²", "").split(" ")) if price_data.get("pricePerSquareMeter") else None
                 
             else:
 
@@ -401,6 +406,14 @@ class Immotop():
         else:
 
             logging.warning("The data of {} were not scrapped.".format(url))
+
+        # Replace Nan values of the "Child" property with the values of the "Parent" property
+        # if self.df_property.at[index, "ID parent"] and self.df_property.at[index, "ID"] != self.df_property.at[index, "ID parent"]:
+
+        #     parent_row = self.df_property[self.df_property["ID"] == self.df_property.at[index, "ID parent"]]
+        #     if not parent_row.empty:
+                
+        #         self.df_property.loc[index] = self.df_property.loc[index].fillna(parent_row.iloc[0])
 
     ## Scrape property page ##
     def __Scrape_property_data(self, url):
