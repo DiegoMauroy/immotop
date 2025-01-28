@@ -36,14 +36,14 @@ if __name__ == "__main__":
     # Initialize an instance of immotop
     immotop = Immotop("Outputs/Immotop_{}.xlsx".format(start_time_format))
 
-    # list of url to scrape
+    # dictionnary of url to scrape
     scraped_urls = immotop.Create_url(data_json, url_template, translate_to_url)   
 
     # Scrape overview pages to find the url of each property #
-    for scraped_url in scraped_urls:
+    for url_context, scraped_url in scraped_urls.items():
 
-        print("Scrape {}".format(scraped_url))
-        logging.info("Scrape {}".format(scraped_url))
+        print("Scrape {} : {}".format(url_context, scraped_url))
+        logging.info("Scrape {} : {}".format(url_context, scraped_url))
 
         immotop.Scrape_overview_pages(scraped_url)
 

@@ -41,10 +41,10 @@ class Immotop():
     ## json_create_url  => json containing the filters used to create the url ##
     ## url_template     => template to create the url to be scraped ##
     ## translate_to_url => dictionnary used to translate the filters into url to be scraped ##
-    ## Return a list with the url ##
+    ## Return a dictionnary where the key is the context of the url and the value is the url ##
     def Create_url(self, json_create_url, url_template, translate_to_url):
 
-        urls = []
+        urls = {}
 
         # Get the location to scrape
         locations       = [] 
@@ -90,10 +90,10 @@ class Immotop():
                                 
                                 for statu in status:
 
-                                    urls.append(url_template.format(statut     = "idContratto=" + translate_to_url[statu],
-                                                                    type       = "&idCategoria=" + translate_to_url[key1], 
-                                                                    subtype    = "&idTipologia[0]=" + translate_to_url[key2], 
-                                                                    location   = "&idNazione=" + translate_to_url[location]))
+                                    urls["{location}_{statu}_{key1}_{key2}"] = url_template.format(statut     = "idContratto=" + translate_to_url[statu],
+                                                                                                   type       = "&idCategoria=" + translate_to_url[key1], 
+                                                                                                   subtype    = "&idTipologia[0]=" + translate_to_url[key2], 
+                                                                                                   location   = "&idNazione=" + translate_to_url[location])
                 
                 # There aren't subtypes
                 # if the type has to be scraped, add its url for each location and status to be scraped
@@ -103,10 +103,10 @@ class Immotop():
                                 
                         for statu in status:
 
-                            urls.append(url_template.format(statut     = "idContratto=" + translate_to_url[statu],
-                                                            type       = "&idCategoria=" + translate_to_url[key1], 
-                                                            subtype    = "", 
-                                                            location   = "&idNazione=" + translate_to_url[location]))
+                            urls["{location}_{statu}_{key1}"] = url_template.format(statut     = "idContratto=" + translate_to_url[statu],
+                                                                                    type       = "&idCategoria=" + translate_to_url[key1], 
+                                                                                    subtype    = "", 
+                                                                                    location   = "&idNazione=" + translate_to_url[location])
         
         return urls
 
