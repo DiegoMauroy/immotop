@@ -83,7 +83,7 @@ class Immotop():
 
                     for key2, value2 in value1.items():
 
-                        # if the subproperty has to be scraped, add its url for each location and status to be scraped
+                        # if the subtype has to be scraped, add its url for each location and status to be scraped
                         if value2:
 
                             for location in locations:
@@ -204,6 +204,30 @@ class Immotop():
     
         return None
     
+    ## Get the data contained in a tag 'script' with id='__NEXT_DATA__' ##
+    ## Return data in a dictionnary (None if data have not been found) ##
+    def __Get_json_data(self, source_code, url):
+
+        # Search the tag <script id='__NEXT_DATA__'> containing the data
+        script_data = source_code.find("script", {"id" : "__NEXT_DATA__"})
+        if script_data:
+
+            # Try to store data in a dictionnary
+            try:
+
+                data = json.loads(script_data.get_text(strip=True))
+                return data
+                
+            except json.JSONDecodeError as e:
+                
+                logging.warning("Error json.loads in {} : {}".format(url, e))
+
+        else:
+            
+            logging.warning("The tag <script id='__NEXT_DATA__'> doesn't exist in : {}.".format(url))
+
+        return None
+    
     ## Get the url of "child" properties ##
     def __Get_children_url(self, url):
 
@@ -284,7 +308,7 @@ class Immotop():
                 logging.warning("The tag <li class='nd-list__item in-searchLayoutListItem'> doesn't exist. No property can be scraped from the overview page {}.".format(url))
 
         
-    # Scrape the overview pages ##
+    ## Scrape the overview pages to get the url of each property ##
     def Scrape_overview_pages(self, url):
 
         logging.info("Start to scrape overview pages.")
@@ -310,29 +334,6 @@ class Immotop():
         logging.info("End to scrape overview pages.\n")
         print("End to scrape overview pages.\n")
 
-    ## Get the data contained in a tag 'script' with id='__NEXT_DATA__' ##
-    ## Return data in a dictionnary (None if data have not been found) ##
-    def __Get_json_data(self, source_code, url):
-
-        # Search the tag <script id='__NEXT_DATA__'> containing the data
-        script_data = source_code.find("script", {"id" : "__NEXT_DATA__"})
-        if script_data:
-
-            # Try to store data in a dictionnary
-            try:
-
-                data = json.loads(script_data.get_text(strip=True))
-                return data
-                
-            except json.JSONDecodeError as e:
-                
-                logging.warning("Error json.loads in {} : {}".format(url, e))
-
-        else:
-            
-            logging.warning("The tag <script id='__NEXT_DATA__'> doesn't exist in : {}.".format(url))
-
-        return None
     
     ## Transfer data from dictionnary to dataframe ##
     def __Transfer_dictio_to_dataframe(self, dict_data, index, url):
