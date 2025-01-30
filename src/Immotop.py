@@ -7,7 +7,7 @@ from Tools.Scrape import *
 from Tools.Tool_functions import *
 
 #### Class to scrape Propertyweb ####
-class Immotop():
+class Immotop(Website_selenium):
 
     ## Initialization ##
     def __init__(self, filename_output):
@@ -68,7 +68,7 @@ class Immotop():
 
                     status.append(json_statu)
 
-        # Log an error if there aren't locations to be scraped
+        # Log an error if there aren't locations/status to be scraped
         if not locations or not status:
 
             logging.error("There is no location/statut to scrape. Check your 'config.json'.")
@@ -95,7 +95,7 @@ class Immotop():
                                                                                                                   subtype    = "&idTipologia[0]=" + translate_to_url[key2], 
                                                                                                                   location   = "&idNazione=" + translate_to_url[location])
                 
-                # There aren't subtypes
+                # There are no subtypes
                 # if the type has to be scraped, add its url for each location and status to be scraped
                 elif value1:
 
@@ -247,6 +247,7 @@ class Immotop():
                     for property in properties_data:
 
                         id = property.get("id")
+
                         # Check that it is not the id of the "Parent" property
                         if id not in url:
 
@@ -262,9 +263,56 @@ class Immotop():
             else:
 
                 logging.error("The script id='__NEXT_DATA__' was not found in {}.".format(url))
+
+
+    ## Scrape the url of a property in the overview page ##
+    ## Add the url in dict_href_properties ##
+    ## Retrun True if an url has been found ##
+    def __Get_url_property(self, source_code, url, scraper):
+
+        url_found = False
+
+        # Search the url of each property contained in the overview page
+        lis = source_code.find_all("li", {"class" : "nd-list__item in-searchLayoutListItem"})
+        if lis:
+
+            for index, li in enumerate(lis):
+
+                title = li.find("a", {"class" : "in-listingCardTitle"})
+                if title:
+
+                    # Get url of the page
+                    href = title.get("href")
+                    if href:
+
+                        url_found = True
+                        if href not in self.dict_href_properties:
+
+                            self.dict_href_properties[href] = None
+
+                        # If the property has "child" properties, scrape its page to get the url of the children 
+                        if li.find("div", {"class" : "nd-strip is-spaced in-listingCardUnits"}):
+
+                            url_found = self.__Get_children_url(href)
+
+                    else:
+
+                        logging.warning("{} : The attribute 'href' doesn't exist in the tag <a class='in-listingCardTitle'> : property {}/{} in {}.".format(scraper, index, len(lis), url))
+
+                else:
+
+                    logging.warning("{} : There is no tag <a class='in-listingCardTitle'> in the tag <li class='nd-list__item in-searchLayoutListItem'> : property {}/{} in {}.".format(scraper, index, len(lis), url))
+
+        else:
+
+            logging.warning("{} : The tag <li class='nd-list__item in-searchLayoutListItem'> doesn't exist in {}.".format(scraper, url))
+
+        return url_found
     
     ## Scrape the overview page ##
     ## The goal is to get the url of each property contained in the overview page ##
+    ## REMARK : For some overview page, beautifulsoup is not enough to get the complete source code (I don't know why). ##
+    ##          That's why, this function starts by using beautifulsoup. If the url is not found, it tries with selenium. ##
     def __Scrape_overview_page(self, url):
 
         # Get the source code
@@ -273,39 +321,31 @@ class Immotop():
         # Check if the source code was scraped
         if source_code:
              
-            # Search the url of each property contained in the overview page
-            lis = source_code.find_all("li", {"class" : "nd-list__item in-searchLayoutListItem"})
-            if lis:
+            # Try to get url with beautifulsoup
+            url_found = self.__Get_url_property(source_code, url, "BeautifulSoup")
 
-                for li in lis:
+        # If no url is found => Try with selenium
+        if not url_found:
 
-                    title = li.find("a", {"class" : "in-listingCardTitle"})
-                    if title:
+            # Open a navigator
+            self.Open_webdriver()
 
-                        # Get url of the page
-                        href = title.get("href")
-                        if href:
+            # Access to the website
+            self.Access_website(url)
 
-                            if href not in self.dict_href_properties:
+            # Get the source code
+            source_code = BeautifulSoup(self.driver.page_source, features = "lxml")
 
-                                self.dict_href_properties[href] = None
+            # Close navigator
+            self.Close_webdriver()
+            
+            # Get the url
+            url_found = self.__Get_url_property(source_code, url, "Selenium")
 
-                            # If the property has "child" properties, scrape its page to get the url of the children 
-                            if li.find("div", {"class" : "nd-strip is-spaced in-listingCardUnits"}):
+        # no url is found
+        if not url_found:
 
-                                self.__Get_children_url(href)
-
-                        else:
-
-                            logging.warning("The attribute 'href' doesn't exist in the tag <a class='in-listingCardTitle'> : {}.".format(url))
-
-                    else:
-
-                        logging.warning("There is no tag <a class='in-listingCardTitle'> in the tag <li class='nd-list__item in-searchLayoutListItem'> in {}.".format(url))
-
-            else:
-
-                logging.warning("The tag <li class='nd-list__item in-searchLayoutListItem'> doesn't exist. No property can be scraped from the overview page {}.".format(url))
+            logging.warning("No property can be scraped from the overview page {}.".format(url))
 
         
     ## Scrape the overview pages to get the url of each property ##
