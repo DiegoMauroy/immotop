@@ -31,7 +31,8 @@ if __name__ == "__main__":
     data_json = Read_json(json_path)
 
     # dictionnary used to translate the filters into url to be scraped
-    translate_to_url = Read_json("Inputs/translate_to_url.json")
+    translate_to_url_path = Get_path_exe_or_local("translate_to_url.json", "Inputs")
+    translate_to_url = Read_json(translate_to_url_path)
 
     # Initialize an instance of immotop
     immotop = Immotop("Outputs/Immotop_{}.xlsx".format(start_time_format))
