@@ -1,38 +1,117 @@
 {    
-    "Belgique"                          : "BE",
-    "France"                            : "FR",
-    "Luxembourg"                        : "LU",
-    "Allemagne"                         : "DE",
-    "vente"                             : "1",
-    "location"                          : "2",
-    "Maisons - Appartements"            : "1",
-    "Appartement"                       : "4",
-    "Penthouse-Mansarde"                : "5",
-    "Duplex - Triplex"                  : "114",
-    "Maison"                            : "7",
-    "Loft"                              : "31",
-    "Studio"                            : "113",
-    "Maison de campagne"                : "11",
-    "Villa"                             : "12",
-    "Immobilier neuf"                   : "6",
-    "Appartement neuf"                  : "54",
-    "Penthouse-Mansarde neuf"           : "85",
-    "Loft neuf"                         : "60",
-    "Villa - Pavillon"                  : "58",
-    "Box Auto"                          : "57",
-    "Bureau"                            : "56",
-    "Magasin"                           : "55",
-    "Entrepot"                          : "61",
-    "Hangar"                            : "59",
-    "Box - Parking"                     : "22",
-    "Immeubles - Edifices"              : "20",
-    "Bureaux - coworking"               : "23",
-    "Magasins - Locaux commerciaux"     : "26",                          
-    "Local commercial"                  : "1",
-    "Activite commercial"               : "2",
-    "Entrepots - depots"                : "21",
-    "Hangar - Locaux industriels"       : "25",
-    "Terrains"                          : "24",
-    "Terrain Agricole"                  : "106",
-    "Terrain constructible"             : "107"
+    "Belgique"      : "BE",
+    "France"        : "FR",
+    "Luxembourg"    : "LU",
+    "Allemagne"     : "DE",
+    "vente"         :   {
+                            "id"        :   "1",
+                            "types"     :   {
+                                                "Maisons - Appartements"            :   {
+                                                                                            "id"        :   "1",
+                                                                                            "subtypes"  :   {
+                                                                                                                "Appartement"           : "4",
+                                                                                                                "Penthouse-Mansarde"    : "5",
+                                                                                                                "Duplex - Triplex"      : "114",
+                                                                                                                "Maison"                : "7",
+                                                                                                                "Loft"                  : "31",
+                                                                                                                "Studio"                : "113",
+                                                                                                                "Maison de campagne"    : "11",
+                                                                                                                "Villa"                 : "12"
+                                                                                                            }
+                                                                                        },
+                                                "Immobilier neuf"                   :   {
+                                                                                            "id"        :   "6",
+                                                                                            "subtypes"  :   {
+                                                                                                                "Appartement neuf"          : "54",
+                                                                                                                "Penthouse-Mansarde neuf"   : "85",
+                                                                                                                "Loft neuf"                 : "60",
+                                                                                                                "Villa - Pavillon"          : "58",
+                                                                                                                "Box Auto"                  : "57",
+                                                                                                                "Bureau"                    : "56",
+                                                                                                                "Magasin"                   : "55",
+                                                                                                                "Entrepot"                  : "61",
+                                                                                                                "Hangar"                    : "59"
+                                                                                                            }
+                                                                                        },
+                                                "Box - Parking"                     :   {
+                                                                                            "id"        :   "22"
+                                                                                        },
+                                                "Immeubles - Edifices"              :   {
+                                                                                            "id"        :   "20"
+                                                                                        },
+                                                "Bureaux - coworking"               :   {
+                                                                                            "id"        :   "23"
+                                                                                        },
+                                                "Magasins - Locaux commerciaux"     :   {
+                                                                                            "id"        :   "26",
+                                                                                            "subtypes"  :   {
+                                                                                                                "Local commercial"          : "1",
+                                                                                                                "Activite commercial"       : "2"
+                                                                                                            }
+                                                                                        },
+                                                "Entrepots - depots"                :   {
+                                                                                            "id"        :   "21"
+                                                                                        },
+                                                "Hangar - Locaux industriels"       :   {
+                                                                                            "id"        :   "25"
+                                                                                        },
+                                                "Terrains"                          :   {
+                                                                                            "id"        :   "24",
+                                                                                            "subtypes"  :   {
+                                                                                                                "Terrain Agricole"          : "106",
+                                                                                                                "Terrain constructible"     : "107"
+                                                                                                            }
+                                                                                        }
+                                            }
+                        },
+    "location"  :       {
+                            "id"        :   "2",
+                            "types"     :   {
+                                                "Maisons - Appartements"            :   {
+                                                                                            "id"        :   "1",
+                                                                                            "subtypes"  :   {
+                                                                                                                "Appartement"           : "4",
+                                                                                                                "Penthouse-Mansarde"    : "5",
+                                                                                                                "Duplex - Triplex"      : "114",
+                                                                                                                "Maison"                : "7",
+                                                                                                                "Loft"                  : "31",
+                                                                                                                "Studio"                : "113",
+                                                                                                                "Maison de campagne"    : "11",
+                                                                                                                "Villa"                 : "12"
+                                                                                                            }
+                                                                                        },
+                                                "Chambres"                          :   {
+                                                                                            "id"        :   "4"
+                                                                                        },
+                                                "Box - Parking"                     :   {
+                                                                                            "id"        :   "22"
+                                                                                        },
+                                                "Immeubles - Edifices"              :   {
+                                                                                            "id"        :   "20"
+                                                                                        },
+                                                "Bureaux - coworking"               :   {
+                                                                                            "id"        :   "23"
+                                                                                        },
+                                                "Magasins - Locaux commerciaux"     :   {
+                                                                                            "id"        :   "26",
+                                                                                            "subtypes"  :   {
+                                                                                                                "Local commercial"          : "1",
+                                                                                                                "Activite commercial"       : "2"
+                                                                                                            }
+                                                                                        },
+                                                "Entrepots - depots"                :   {
+                                                                                            "id"        :   "21"
+                                                                                        },
+                                                "Hangar - Locaux industriels"       :   {
+                                                                                            "id"        :   "25"
+                                                                                        },
+                                                "Terrains"                          :   {
+                                                                                            "id"        :   "24",
+                                                                                            "subtypes"  :   {
+                                                                                                                "Terrain Agricole"          : "106",
+                                                                                                                "Terrain constructible"     : "107"
+                                                                                                            }
+                                                                                        }
+                                            }
+                        }
 }

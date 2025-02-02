@@ -1,8 +1,8 @@
 {
     "location"                      :   {
-                                            "Belgique"                  :   false,
+                                            "Belgique"                  :   true,
                                             "France"                    :   false,
-                                            "Luxembourg"                :   true,
+                                            "Luxembourg"                :   false,
                                             "Allemagne"                 :   false           
                                         },
     "statut"                        :   {
@@ -10,21 +10,22 @@
                                             "location"                  : true
                                         },
     "Maisons - Appartements"        :   {
-                                            "Appartement"               : true,
-                                            "Penthouse-Mansarde"        : true,
-                                            "Duplex - Triplex"          : true,
-                                            "Maison"                    : true,
-                                            "Loft"                      : true,
-                                            "Studio"                    : true,
-                                            "Maison de campagne"        : true,
-                                            "Villa"                     : true
+                                            "Appartement"               : false,
+                                            "Penthouse-Mansarde"        : false,
+                                            "Duplex - Triplex"          : false,
+                                            "Maison"                    : false,
+                                            "Loft"                      : false,
+                                            "Studio"                    : false,
+                                            "Maison de campagne"        : false,
+                                            "Villa"                     : false
                                         },
+    "Chambres"                      :   false,
     "Immobilier neuf"               :   {
                                             "Appartement neuf"          : false,
                                             "Penthouse-Mansarde neuf"   : false,
                                             "Loft neuf"                 : false,
                                             "Villa - Pavillon"          : false,
-                                            "Box Auto"                  : false,
+                                            "Box Auto"                  : true,
                                             "Bureau"                    : false,
                                             "Magasin"                   : false,
                                             "Entrepot"                  : false,

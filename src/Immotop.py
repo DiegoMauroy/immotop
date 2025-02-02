@@ -14,6 +14,7 @@ class Immotop(Website_selenium):
         
         self.filename_output        = filename_output       # filename of the output
         self.dict_href_properties   = {}                    # dictionnary of property hrefs (use a dictionary to avoid duplicates and keep the order)
+        self.scraper                = "bs4"                 # web scraper used to scrape overview page
 
         # Dataframe to store data
         self.df_property = pd.DataFrame(columns =   [
@@ -46,7 +47,7 @@ class Immotop(Website_selenium):
 
         urls = {}
 
-        # Get the location to scrape
+        # Get the location to be scraped
         locations       = [] 
         json_locations  = json_create_url.get("location")
         if json_locations:
@@ -73,7 +74,7 @@ class Immotop(Website_selenium):
 
             logging.error("There is no location/statut to scrape. Check your 'config.json'.")
 
-        # Create the urls according to the type of property to be retrieved
+        # Create the urls according to the type of property to be scraped
         for key1, value1 in json_create_url.items():
 
             if key1 != "location" and key1 != "statut":
@@ -81,32 +82,39 @@ class Immotop(Website_selenium):
                 # value1 is a dictionnary if the type has subtypes
                 if isinstance(value1, dict):
 
+                    # Create the urls according to the subtype of property to be scraped
                     for key2, value2 in value1.items():
 
                         # if the subtype has to be scraped, add its url for each location and status to be scraped
                         if value2:
+                            
+                            for statu in status:
+                            
+                                for location in locations:
 
-                            for location in locations:
-                                
-                                for statu in status:
-
-                                    urls["{}/{}/{}/{}".format(location, statu, key1, key2)] = url_template.format(statut     = "idContratto=" + translate_to_url[statu],
-                                                                                                                  type       = "&idCategoria=" + translate_to_url[key1], 
-                                                                                                                  subtype    = "&idTipologia[0]=" + translate_to_url[key2], 
-                                                                                                                  location   = "&idNazione=" + translate_to_url[location])
+                                    # Check if there is an url for this statu, type (key1) and subtype (key2)
+                                    if Get_value_dictionnary(translate_to_url, [statu, "types", key1, "subtypes", key2], False):
+                                        
+                                        urls["{}/{}/{}/{}".format(location, statu, key1, key2)] = url_template.format(statut     = "idContratto=" + Get_value_dictionnary(translate_to_url, [statu, "id"]),
+                                                                                                                      type       = "&idCategoria=" + Get_value_dictionnary(translate_to_url, [statu, "types", key1, "id"]), 
+                                                                                                                      subtype    = "&idTipologia[0]=" + Get_value_dictionnary(translate_to_url, [statu, "types", key1, "subtypes", key2]), 
+                                                                                                                      location   = "&idNazione=" + translate_to_url[location])
                 
                 # There are no subtypes
                 # if the type has to be scraped, add its url for each location and status to be scraped
                 elif value1:
-
-                    for location in locations:
                                 
-                        for statu in status:
+                    for statu in status:
 
-                            urls["{}/{}/{}".format(location, statu, key1)] = url_template.format(statut     = "idContratto=" + translate_to_url[statu],
-                                                                                                 type       = "&idCategoria=" + translate_to_url[key1], 
-                                                                                                 subtype    = "", 
-                                                                                                 location   = "&idNazione=" + translate_to_url[location])
+                        for location in locations:
+
+                            # Check if there is an url for this statu and type (key1)
+                            if Get_value_dictionnary(translate_to_url, [statu, "types", key1], False):
+
+                                urls["{}/{}/{}".format(location, statu, key1)] = url_template.format(statut     = "idContratto=" + Get_value_dictionnary(translate_to_url, [statu, "id"]),
+                                                                                                     type       = "&idCategoria=" + Get_value_dictionnary(translate_to_url, [statu, "types", key1, "id"]), 
+                                                                                                     subtype    = "", 
+                                                                                                     location   = "&idNazione=" + translate_to_url[location])
         
         return urls
 
@@ -220,7 +228,7 @@ class Immotop(Website_selenium):
                 
             except json.JSONDecodeError as e:
                 
-                logging.warning("Error json.loads in {} : {}".format(url, e))
+                logging.error("Error json.loads in {} : {}".format(url, e))
 
         else:
             
@@ -258,19 +266,16 @@ class Immotop(Website_selenium):
 
                 else:
 
-                    logging.error("The url of the children were not scraped in : {}".format(url))
+                    logging.warning("The url of the children were not scraped in : {}".format(url))
 
             else:
 
-                logging.error("The script id='__NEXT_DATA__' was not found in {}.".format(url))
+                logging.warning("The script id='__NEXT_DATA__' was not found in {}.".format(url))
 
 
     ## Scrape the url of a property in the overview page ##
     ## Add the url in dict_href_properties ##
-    ## Retrun True if an url has been found ##
-    def __Get_url_property(self, source_code, url, scraper):
-
-        url_found = False
+    def __Get_url_property(self, source_code, url):
 
         # Search the url of each property contained in the overview page
         lis = source_code.find_all("li", {"class" : "nd-list__item in-searchLayoutListItem"})
@@ -285,7 +290,7 @@ class Immotop(Website_selenium):
                     href = title.get("href")
                     if href:
 
-                        url_found = True
+                        # Check that the url has not been already scraped
                         if href not in self.dict_href_properties:
 
                             self.dict_href_properties[href] = None
@@ -293,21 +298,28 @@ class Immotop(Website_selenium):
                         # If the property has "child" properties, scrape its page to get the url of the children 
                         if li.find("div", {"class" : "nd-strip is-spaced in-listingCardUnits"}):
 
-                            url_found = self.__Get_children_url(href)
+                            self.__Get_children_url(href)
 
                     else:
 
-                        logging.warning("{} : The attribute 'href' doesn't exist in the tag <a class='in-listingCardTitle'> : property {}/{} in {}.".format(scraper, index, len(lis), url))
+                        logging.warning("{} : The attribute 'href' doesn't exist in the tag <a class='in-listingCardTitle'> : property {}/{} in {}.".format(self.scraper, index+1, len(lis), url))
+                        self.scraper = "selenium" if self.scraper == "bs4" else None    # Update scraper to use
+                        logging.info("Scraper set to : {}.".format(self.scraper))
+                        return
 
                 else:
 
-                    logging.warning("{} : There is no tag <a class='in-listingCardTitle'> in the tag <li class='nd-list__item in-searchLayoutListItem'> : property {}/{} in {}.".format(scraper, index, len(lis), url))
+                    logging.warning("{} : There is no tag <a class='in-listingCardTitle'> in the tag <li class='nd-list__item in-searchLayoutListItem'> : property {}/{} in {}.".format(self.scraper, index+1, len(lis), url))
+                    self.scraper = "selenium" if self.scraper == "bs4" else None    # Update scraper to use
+                    logging.info("Scraper set to : {}.".format(self.scraper))
+                    return
 
         else:
 
-            logging.warning("{} : The tag <li class='nd-list__item in-searchLayoutListItem'> doesn't exist in {}.".format(scraper, url))
-
-        return url_found
+            logging.warning("{} : The tag <li class='nd-list__item in-searchLayoutListItem'> doesn't exist in {}.".format(self.scraper, url))
+            self.scraper = "selenium" if self.scraper == "bs4" else None    # Update scraper to use
+            logging.info("Scraper set to : {}.".format(self.scraper))
+            return
     
     ## Scrape the overview page ##
     ## The goal is to get the url of each property contained in the overview page ##
@@ -315,17 +327,19 @@ class Immotop(Website_selenium):
     ##          That's why, this function starts by using beautifulsoup. If the url is not found, it tries with selenium. ##
     def __Scrape_overview_page(self, url):
 
-        # Get the source code
-        source_code, _ = Web_page_source_code_robustification(url, 2, self.headers)
+        # Try to get url with beautifulsoup
+        if self.scraper == "bs4":
 
-        # Check if the source code was scraped
-        if source_code:
-             
-            # Try to get url with beautifulsoup
-            url_found = self.__Get_url_property(source_code, url, "BeautifulSoup")
+            # Get the source code
+            source_code, _ = Web_page_source_code_robustification(url, 2, self.headers)
 
-        # If no url is found => Try with selenium
-        if not url_found:
+            # Check if the source code was scraped
+            if source_code:
+                    
+                self.__Get_url_property(source_code, url)
+
+        # Try to get url with selenium
+        if self.scraper == "selenium":
 
             # Open a navigator
             self.Open_webdriver()
@@ -340,10 +354,10 @@ class Immotop(Website_selenium):
             self.Close_webdriver()
             
             # Get the url
-            url_found = self.__Get_url_property(source_code, url, "Selenium")
+            self.__Get_url_property(source_code, url)
 
         # no url is found
-        if not url_found:
+        if not self.scraper:
 
             logging.warning("No property can be scraped from the overview page {}.".format(url))
 
@@ -370,6 +384,14 @@ class Immotop(Website_selenium):
 
                 # Scrape data
                 self.__Scrape_overview_page(url)
+
+            else:
+
+                logging.error("The url of the overview page is None. Impossible to continue.")
+                break
+
+        # Reset scraper
+        self.scraper = "bs4"
 
         logging.info("End to scrape overview pages.\n")
         print("End to scrape overview pages.\n")
@@ -447,14 +469,6 @@ class Immotop(Website_selenium):
 
             logging.warning("The data of {} were not scrapped.".format(url))
 
-        # Replace Nan values of the "Child" property with the values of the "Parent" property
-        # if self.df_property.at[index, "ID parent"] and self.df_property.at[index, "ID"] != self.df_property.at[index, "ID parent"]:
-
-        #     parent_row = self.df_property[self.df_property["ID"] == self.df_property.at[index, "ID parent"]]
-        #     if not parent_row.empty:
-                
-        #         self.df_property.loc[index] = self.df_property.loc[index].fillna(parent_row.iloc[0])
-
     ## Scrape property page ##
     def __Scrape_property_data(self, url):
 
@@ -479,7 +493,7 @@ class Immotop(Website_selenium):
 
             else:
 
-                logging.error("The script id='__NEXT_DATA__' was not found in {}.".format(url))
+                logging.warning("The script id='__NEXT_DATA__' was not found in {}.".format(url))
 
     ## Scrape the property pages ##
     def Scrape_property_pages(self):
