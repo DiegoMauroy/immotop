@@ -117,17 +117,15 @@ class Immotop(Website_selenium):
                                                                                                      location   = "&idNazione=" + translate_to_url[location])
         
         return urls
-
+    
     ## Get the number of pages in the URL ##
     ## Return the number of pages ##
-    def __Get_page_count(self, url):
+    def __Get_page_count(self, source_code, url):
 
-        # Get the source code
-        source_code, _ = Web_page_source_code_robustification(url, 2, self.headers)
-
-        # Check if the source code was scraped
-        if source_code:
-
+        # Check if the overview page contains properties
+        lis = source_code.find_all("li", {"class" : "nd-list__item in-searchLayoutListItem"})
+        if lis:
+        
             # Search the tag containing the pages
             div_pagination = source_code.find("div", {"class" : "in-pagination__list"})
             if div_pagination:
@@ -151,66 +149,163 @@ class Immotop(Website_selenium):
                     if pages:
 
                         count = max(pages)
-                        logging.info("Number of page : {}.".format(count))
                         return count
                     
                     # The list is empty
                     else:
                         
-                        logging.warning("The list of pages is empty : {}.".format(url))
+                        logging.warning("{} : The list of pages is empty : {}.".format(self.scraper, url))
+                        self.scraper = "selenium" if self.scraper == "bs4" else None    # Update scraper to use
+                        logging.info("Scraper set to : {}.".format(self.scraper))
+                        return 1
 
                 else:
 
-                    logging.warning("There is no <a> and <div> in the tag <div class='in-pagination__list'> in {}.".format(url))
+                    logging.warning("{} : There is no <a> and <div> in the tag <div class='in-pagination__list'> in {}.".format(self.scraper, url))
+                    self.scraper = "selenium" if self.scraper == "bs4" else None    # Update scraper to use
+                    logging.info("Scraper set to : {}.".format(self.scraper))
+                    return 1
 
             else:
 
-                logging.warning("The tag <div class='in-pagination__list'> doesn't exist in {}.".format(url))
+                logging.warning("{} : The tag <div class='in-pagination__list'> doesn't exist in {}.".format(self.scraper, url))
+                self.scraper = "selenium" if self.scraper == "bs4" else None    # Update scraper to use
+                logging.info("Scraper set to : {}.".format(self.scraper))
+                return 1
 
-        logging.info("Number of page : {}.".format(1))
-        return 1
+        else:
 
+            logging.warning("{} : There are no properties in : {}.".format(self.scraper, url))
+            self.scraper = "selenium" if self.scraper == "bs4" else None    # Update scraper to use
+            logging.info("Scraper set to : {}.".format(self.scraper))
+            return 0
+
+    ## Search the number of pages in the URL ##
+    ## Return the number of pages ##
+    ## REMARK : For some overview page, beautifulsoup is not enough to get page count (I don't know why). ##
+    ##          That's why, this function starts by using beautifulsoup. If the page count is not found, it tries with selenium. ##
+    def __Search_page_count(self, url):
+
+        page_count = 0
+
+        # Try to get page count with bs4
+        if self.scraper == "bs4":
+
+            # Get the source code
+            source_code, _ = Web_page_source_code_robustification(url, 2, self.headers)
+
+            # Check if the source code was scraped
+            if source_code:
+
+                # Get page count
+                page_count = self.__Get_page_count(source_code, url)
+
+        # Try to get page count with selenium
+        if self.scraper == "selenium":
+        
+            # Open a navigator
+            self.Open_webdriver()
+
+            # Access to the website
+            self.Access_website(url)
+
+            # Get the source code
+            source_code = BeautifulSoup(self.driver.page_source, features = "lxml")
+
+            # Close navigator
+            self.Close_webdriver()
+
+            # Get page count
+            page_count = self.__Get_page_count(source_code, url)
+
+        # The page count has not been found
+        if not self.scraper:
+
+            logging.warning()
+            page_count = 1
+
+        logging.info("Number of page : {}.".format(page_count))
+        return page_count
+    
     ## Get the url of a specific page ##  
     ## Return the url of this specific page (None if not found) ##
-    def __Get_url_specific_page(self, url, searched_page):
+    def __Get_url_specific_page(self, source_code, url, searched_page):
 
-        # Get the source code
-        source_code, _ = Web_page_source_code_robustification(url, 2, self.headers)
+        searched_url = None
 
-        # Check if the source code was scraped
-        if source_code:
+        # Search the tag containing the pages
+        div_pagination = source_code.find("div", {"class" : "in-pagination__list"})
+        if div_pagination:
 
-            # Search the tag containing the pages
-            div_pagination = source_code.find("div", {"class" : "in-pagination__list"})
-            if div_pagination:
+            # Search the href of the searched_page
+            a_pages = div_pagination.find_all('a')
+            if a_pages:
 
-                # Search the href of the searched_page
-                a_pages = div_pagination.find_all('a')
-                if a_pages:
+                for a_page in a_pages:
 
-                    for a_page in a_pages:
+                    page = a_page.get_text(strip=True)
+                    if page and page.isdigit() and int(page) == searched_page:
 
-                        page = a_page.get_text(strip=True)
-                        if page and page.isdigit() and int(page) == searched_page:
-
-                            href = a_page.get("href")
-                            if href:
-                                
-                                return href 
+                        href = a_page.get("href")
+                        if href:
                             
-                            else:
+                            searched_url = href 
+                        
+                        else:
 
-                                logging.warning("There is no href in <a>{}</a> in {}.".format(str(page), url))
-                    
-                else:
-
-                    logging.warning("There is no <a> and <div> in the tag <div class='in-pagination__list'> in {}.".format(url))
-
+                            logging.warning("There is no href in <a>{}</a> in {}.".format(str(page), url))
+                
             else:
 
-                logging.warning("The tag <div class='in-pagination__list'> doesn't exist in {}.".format(url))
+                logging.warning("There is no <a> and <div> in the tag <div class='in-pagination__list'> in {}.".format(url))
+
+        else:
+
+            logging.warning("The tag <div class='in-pagination__list'> doesn't exist in {}.".format(url))
+
+        return searched_url
+
+    ## Search the url of a specific page ##  
+    ## Return the url of this specific page (None if not found) ##
+    def __Search_url_specific_page(self, url, searched_page):
+
+        searched_url = None
+
+        # Try to the get the url with bs4
+        if self.scraper == "bs4":
+
+            # Get the source code
+            source_code, _ = Web_page_source_code_robustification(url, 2, self.headers)
+
+            # Check if the source code was scraped
+            if source_code:
+
+                searched_url = self.__Get_url_specific_page(source_code, url, searched_page)
+
+        # Try to the get the url with selenium
+        if self.scraper == "selenium":
+                
+            # Open a navigator
+            self.Open_webdriver()
+
+            # Access to the website
+            self.Access_website(url)
+
+            # Get the source code
+            source_code = BeautifulSoup(self.driver.page_source, features = "lxml")
+
+            # Close navigator
+            self.Close_webdriver()
+
+            # Get the url
+            searched_url = self.__Get_url_specific_page(source_code, url, searched_page)
+
+        # Impossible to get the url
+        if not self.scraper:
+
+            logging.error("Url of the page {} was not found : {}.".format(searched_page, url))
     
-        return None
+        return searched_url
     
     ## Get the data contained in a tag 'script' with id='__NEXT_DATA__' ##
     ## Return data in a dictionnary (None if data have not been found) ##
@@ -369,7 +464,7 @@ class Immotop(Website_selenium):
         print("Start to scrape overview pages.")
 
         # Get the number of pages
-        page_count = self.__Get_page_count(url)
+        page_count = self.__Search_page_count(url)
 
         # Scrape each overview page
         for page in tqdm.tqdm(range(1, page_count + 1), "Get the url of each property"):
@@ -377,7 +472,7 @@ class Immotop(Website_selenium):
             # Update current url with the url of the new page
             if page > 1 and url:
                 
-                url = self.__Get_url_specific_page(url, page)
+                url = self.__Search_url_specific_page(url, page)
 
             # Url has to be different than None
             if url:
