@@ -179,47 +179,6 @@ class Immotop(Website_selenium):
         logging.info("Number of page : {}.".format(page_count))
         return page_count
     
-    ## Get the url of a specific page ##  
-    ## Return the url of this specific page (None if not found) ##
-    def __Get_url_specific_page(self, searched_page):
-
-        searched_url = None
-        
-        # Get the source code
-        source_code = BeautifulSoup(self.driver.page_source, features = "lxml")
-
-        # Search the tag containing the pages
-        div_pagination = source_code.find("div", {"class" : "in-pagination__list"})
-        if div_pagination:
-
-            # The url is contained in a tag <a>
-            a_pages = div_pagination.find_all('a')
-            if a_pages:
-
-                for a_page in a_pages:
-
-                    page = a_page.get_text(strip=True)
-
-                    # Store the page number if it is numeric
-                    if page and page.isdigit() and int(page) == searched_page:
-                        
-                        searched_url = a_page.get("href")
-                        break
-
-                if not searched_url:
-
-                    logging.warning("<a>{}<a> was not found : {}.".format(searched_page, self.current_url))
-
-            else:
-
-                logging.warning("There are no <a> in the tag <div class='in-pagination__list'> in {}.".format(self.current_url))
-
-        else:
-
-            logging.warning("The tag <div class='in-pagination__list'> doesn't exist in {}.".format(self.current_url))
-
-        return searched_url
-    
     ## Get the data contained in a tag 'script' with id='__NEXT_DATA__' ##
     ## Return data in a dictionnary (None if data have not been found) ##
     def __Get_json_data(self, source_code, url):
@@ -347,22 +306,9 @@ class Immotop(Website_selenium):
 
         # Scrape each overview page
         for page in tqdm.tqdm(range(1, page_count + 1), "Get the url of each property"):
-
-            # Update current url with the url of the new page
-            if page > 1 and url:
-                
-                url = self.__Get_url_specific_page(page)
-
-            # Url has to be different than None
-            if url:
-
-                # Scrape data
-                self.__Scrape_overview_page(url)
-
-            else:
-
-                logging.error("The url of the overview page is None. Impossible to continue.")
-                break
+            
+            # Scrape urls
+            self.__Scrape_overview_page("{}&pag={}".format(url, str(page)))
 
         # Update current url (stop to use selenium)
         self.current_url = None
