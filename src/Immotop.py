@@ -163,7 +163,7 @@ class Immotop(Website_selenium):
 
                 else:
 
-                    logging.warning("There is no <a> and <div> in the tag <div class='in-pagination__list'> in {}.".format(self.current_url))
+                    logging.warning("There are no <a> and <div> in the tag <div class='in-pagination__list'> in {}.".format(self.current_url))
                     page_count = 1
 
             else:
@@ -181,10 +181,44 @@ class Immotop(Website_selenium):
     
     ## Get the url of a specific page ##  
     ## Return the url of this specific page (None if not found) ##
-    def __Get_url_specific_page(self):
+    def __Get_url_specific_page(self, searched_page):
 
-        # to do
-        return
+        searched_url = None
+        
+        # Get the source code
+        source_code = BeautifulSoup(self.driver.page_source, features = "lxml")
+
+        # Search the tag containing the pages
+        div_pagination = source_code.find("div", {"class" : "in-pagination__list"})
+        if div_pagination:
+
+            # The url is contained in a tag <a>
+            a_pages = div_pagination.find_all('a')
+            if a_pages:
+
+                for a_page in a_pages:
+
+                    page = a_page.get_text(strip=True)
+
+                    # Store the page number if it is numeric
+                    if page and page.isdigit() and int(page) == searched_page:
+                        
+                        searched_url = a_page.get("href")
+                        break
+
+                if not searched_url:
+
+                    logging.warning("<a>{}<a> was not found : {}.".format(searched_page, self.current_url))
+
+            else:
+
+                logging.warning("There are no <a> in the tag <div class='in-pagination__list'> in {}.".format(self.current_url))
+
+        else:
+
+            logging.warning("The tag <div class='in-pagination__list'> doesn't exist in {}.".format(self.current_url))
+
+        return searched_url
     
     ## Get the data contained in a tag 'script' with id='__NEXT_DATA__' ##
     ## Return data in a dictionnary (None if data have not been found) ##
@@ -296,6 +330,7 @@ class Immotop(Website_selenium):
             logging.warning("The tag <li class='nd-list__item in-searchLayoutListItem'> doesn't exist in {}.".format(self.current_url))
         
     ## Scrape the overview pages to get the url of each property ##
+    ## REMARK : use selenium to scrape the overview pages because, for some categories, requests is not enough to get the full source code ##
     def Scrape_overview_pages(self, url):
 
         logging.info("Start to scrape overview pages.")
@@ -316,7 +351,7 @@ class Immotop(Website_selenium):
             # Update current url with the url of the new page
             if page > 1 and url:
                 
-                url = self.__Get_url_specific_page(url, page)
+                url = self.__Get_url_specific_page(page)
 
             # Url has to be different than None
             if url:
@@ -329,6 +364,9 @@ class Immotop(Website_selenium):
                 logging.error("The url of the overview page is None. Impossible to continue.")
                 break
 
+        # Update current url (stop to use selenium)
+        self.current_url = None
+
         logging.info("End to scrape overview pages.\n")
         print("End to scrape overview pages.\n")
 
@@ -337,16 +375,16 @@ class Immotop(Website_selenium):
     def __Transfer_dictio_to_dataframe(self, dict_data, index, url):
 
         # Get parent ID
-        self.df_property.at[index, "ID parent"]                        = Get_value_dictionnary(dict_data, ["props", "pageProps", "parentId"])
+        self.df_property.at[index, "ID parent"] = Get_value_dictionnary(dict_data, ["props", "pageProps", "parentId"])
 
         # Focus on a part of the dictionnary
         data = Get_value_dictionnary(dict_data, ["props", "pageProps", "detailData", "realEstate"])
         if data:
 
             # In props/pageProps/detailData/realEstate
-            self.df_property.at[index, "Nom"]                           = data.get("title")
-            self.df_property.at[index, "Statut"]                        = data.get("contractValue")
-            self.df_property.at[index, "Projet Neuf"]                   = data.get("isNew")
+            self.df_property.at[index, "Nom"]           = data.get("title")
+            self.df_property.at[index, "Statut"]        = data.get("contractValue")
+            self.df_property.at[index, "Projet Neuf"]   = data.get("isNew")
 
             # In props/pageProps/detailData/realEstate/properties[0]
             property_data = data.get("properties")
@@ -378,24 +416,24 @@ class Immotop(Website_selenium):
                 location_data = property_data.get("location")
                 if location_data:
                     
-                    self.df_property.at[index, "Pays"]                  = Get_value_dictionnary(location_data, ["nation", "name"])
-                    self.df_property.at[index, "Province"]              = location_data.get("province")
-                    self.df_property.at[index, "City"]                  = location_data.get("city")
-                    self.df_property.at[index, "Macrozone"]             = location_data.get("macrozone")
-                    self.df_property.at[index, "MacrozoneId"]           = location_data.get("macrozoneId")
-                    self.df_property.at[index, "Adresse"]               = location_data.get("address")
-                    self.df_property.at[index, "Numéro"]                = location_data.get("streetNumber")
-                    self.df_property.at[index, "Latitude"]              = location_data.get("latitude")
-                    self.df_property.at[index, "Longitude"]             = location_data.get("longitude")
+                    self.df_property.at[index, "Pays"]          = Get_value_dictionnary(location_data, ["nation", "name"])
+                    self.df_property.at[index, "Province"]      = location_data.get("province")
+                    self.df_property.at[index, "City"]          = location_data.get("city")
+                    self.df_property.at[index, "Macrozone"]     = location_data.get("macrozone")
+                    self.df_property.at[index, "MacrozoneId"]   = location_data.get("macrozoneId")
+                    self.df_property.at[index, "Adresse"]       = location_data.get("address")
+                    self.df_property.at[index, "Numéro"]        = location_data.get("streetNumber")
+                    self.df_property.at[index, "Latitude"]      = location_data.get("latitude")
+                    self.df_property.at[index, "Longitude"]     = location_data.get("longitude")
 
                 # In props/pageProps/detailData/realEstate/properties[0]/price
                 price_data = property_data.get("price")
                 if price_data:
                     
-                    self.df_property.at[index, "Prix"]                      = price_data.get("value")
-                    self.df_property.at[index, "Prix min"]                  = "".join(price_data.get("minValue").replace("€", "").split(" ")) if price_data.get("minValue") else None
-                    self.df_property.at[index, "Prix max"]                  = "".join(price_data.get("maxValue").replace("€", "").split(" ")) if price_data.get("maxValue") else None
-                    self.df_property.at[index, "Prix/m2"]                   = "".join(price_data.get("pricePerSquareMeter").replace("€/m²", "").split(" ")) if price_data.get("pricePerSquareMeter") else None
+                    self.df_property.at[index, "Prix"]      = price_data.get("value")
+                    self.df_property.at[index, "Prix min"]  = "".join(price_data.get("minValue").replace("€", "").split(" ")) if price_data.get("minValue") else None
+                    self.df_property.at[index, "Prix max"]  = "".join(price_data.get("maxValue").replace("€", "").split(" ")) if price_data.get("maxValue") else None
+                    self.df_property.at[index, "Prix/m2"]   = "".join(price_data.get("pricePerSquareMeter").replace("€/m²", "").split(" ")) if price_data.get("pricePerSquareMeter") else None
                 
             else:
 
