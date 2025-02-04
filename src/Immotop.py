@@ -14,24 +14,28 @@ class Immotop(Website_selenium):
         
         self.filename_output        = filename_output       # filename of the output
         self.dict_href_properties   = {}                    # dictionnary of property hrefs (use a dictionary to avoid duplicates and keep the order)
+                                                            # the value will be set to True for the properties "parent"
         self.current_url            = None                  # current url (selenium)
 
-        # Dataframe to store data
-        self.df_property = pd.DataFrame(columns =   [
-                                                        "URL", "ID", "ID parent",
-                                                        "Nom",
-                                                        "Pays", "Province", "City", "Macrozone", "MacrozoneId", "Adresse", "Numéro",
-                                                        "Latitude", "Longitude", 
-                                                        "Statut", "Type", "Projet Neuf",
-                                                        "Prix", "Prix min", "Prix max", "Prix/m2",
-                                                        "Disponibilité",
-                                                        "Année de construction",
-                                                        "Surface",
-                                                        "Nombre de chambres",
-                                                        "Nombre total d'étages", "Etage",
-                                                        "Elévateur",
-                                                        "Consommation d'énergie", "Classe d'isolation thermique", "Chauffage"
-                                                    ])
+        # columns of the dataframes
+        columns =   [
+                        "URL", "ID", "ID parent",
+                        "Nom",
+                        "Pays", "Province", "City", "Macrozone", "MacrozoneId", "Adresse", "Numéro",
+                        "Latitude", "Longitude", 
+                        "Statut", "Type", "Projet Neuf",
+                        "Prix", "Prix min", "Prix max", "Prix/m2",
+                        "Disponibilité",
+                        "Année de construction",
+                        "Surface",
+                        "Nombre de chambres",
+                        "Nombre total d'étages", "Etage",
+                        "Elévateur",
+                        "Consommation d'énergie", "Classe d'isolation thermique", "Chauffage"
+                    ]
+        
+        self.df_property = pd.DataFrame(columns = columns)  # Dataframe to store data of the property, except the property "parent"
+        self.df_parents = pd.DataFrame(columns = columns.remove("ID parent"))   # Dataframe to store data of the property "parent"
 
         # headers used by "requests"
         self.headers = {
@@ -229,7 +233,7 @@ class Immotop(Website_selenium):
                             child_url = url + id
                             if child_url not in self.dict_href_properties:
 
-                                self.dict_href_properties[child_url] = None
+                                self.dict_href_properties[child_url] = False
 
                 else:
 
@@ -266,15 +270,23 @@ class Immotop(Website_selenium):
                     href = title.get("href")
                     if href:
 
-                        # Check that the url has not been already scraped
-                        if href not in self.dict_href_properties:
-
-                            self.dict_href_properties[href] = None
-
                         # If the property has "child" properties, scrape its page to get the url of the children 
                         if li.find("div", {"class" : "nd-strip is-spaced in-listingCardUnits"}):
 
+                            # Add the property "parent"
+                            if href not in self.dict_href_properties:
+
+                                self.dict_href_properties[href] = True
+
+                            #  Add the properties "child"
                             self.__Get_children_url(href)
+
+                        else:
+
+                            # Add the property
+                            if href not in self.dict_href_properties:
+
+                                self.dict_href_properties[href] = False
 
                     else:
 
@@ -318,19 +330,21 @@ class Immotop(Website_selenium):
 
     
     ## Transfer data from dictionnary to dataframe ##
-    def __Transfer_dictio_to_dataframe(self, dict_data, index, url):
+    def __Transfer_dictio_to_dataframe(self, dict_data, df, index, url):
 
         # Get parent ID
-        self.df_property.at[index, "ID parent"] = Get_value_dictionnary(dict_data, ["props", "pageProps", "parentId"])
+        if "ID parent" in df.columns:
+        
+            df.at[index, "ID parent"] = Get_value_dictionnary(dict_data, ["props", "pageProps", "parentId"])
 
         # Focus on a part of the dictionnary
         data = Get_value_dictionnary(dict_data, ["props", "pageProps", "detailData", "realEstate"])
         if data:
 
             # In props/pageProps/detailData/realEstate
-            self.df_property.at[index, "Nom"]           = data.get("title")
-            self.df_property.at[index, "Statut"]        = data.get("contractValue")
-            self.df_property.at[index, "Projet Neuf"]   = data.get("isNew")
+            df.at[index, "Nom"]           = data.get("title")
+            df.at[index, "Statut"]        = data.get("contractValue")
+            df.at[index, "Projet Neuf"]   = data.get("isNew")
 
             # In props/pageProps/detailData/realEstate/properties[0]
             property_data = data.get("properties")
@@ -338,48 +352,48 @@ class Immotop(Website_selenium):
 
                 property_data = property_data[0]
 
-                self.df_property.at[index, "ID"]                        = property_data.get("id")
-                self.df_property.at[index, "Type"]                      = property_data.get("typologyValue")
-                self.df_property.at[index, "Disponibilité"]             = property_data.get("availability")
-                self.df_property.at[index, "Surface"]                   = property_data.get("surfaceValue").replace("m²", "") if property_data.get("surfaceValue") else None
-                self.df_property.at[index, "Nombre de chambres"]        = property_data.get("bedRoomsNumber")
-                self.df_property.at[index, "Salle de bain/douche"]      = property_data.get("bathrooms")
-                self.df_property.at[index, "Année de construction"]     = property_data.get("buildingYear")
-                self.df_property.at[index, "Elévateur"]                 = property_data.get("elevator")
-                self.df_property.at[index, "garage"]                    = property_data.get("garage")
-                self.df_property.at[index, "Nombre total d'étages"]     = property_data.get("floors")
-                self.df_property.at[index, "Etage"]                     = Get_value_dictionnary(property_data, ["floor", "value"])
+                df.at[index, "ID"]                        = property_data.get("id")
+                df.at[index, "Type"]                      = property_data.get("typologyValue")
+                df.at[index, "Disponibilité"]             = property_data.get("availability")
+                df.at[index, "Surface"]                   = property_data.get("surfaceValue").replace("m²", "") if property_data.get("surfaceValue") else None
+                df.at[index, "Nombre de chambres"]        = property_data.get("bedRoomsNumber")
+                df.at[index, "Salle de bain/douche"]      = property_data.get("bathrooms")
+                df.at[index, "Année de construction"]     = property_data.get("buildingYear")
+                df.at[index, "Elévateur"]                 = property_data.get("elevator")
+                df.at[index, "garage"]                    = property_data.get("garage")
+                df.at[index, "Nombre total d'étages"]     = property_data.get("floors")
+                df.at[index, "Etage"]                     = Get_value_dictionnary(property_data, ["floor", "value"])
 
                 # In props/pageProps/detailData/realEstate/properties[0]/energy
                 energy_data = property_data.get("energy")
                 if energy_data:
 
-                    self.df_property.at[index, "Consommation d'énergie"]        = Get_value_dictionnary(energy_data, ["class", "name"])
-                    self.df_property.at[index, "Classe d'isolation thermique"]  = Get_value_dictionnary(energy_data, ["thermalInsulation", "consumption", "name"])
-                    self.df_property.at[index, "Chauffage"]                     = energy_data.get("heatingType")
+                    df.at[index, "Consommation d'énergie"]        = Get_value_dictionnary(energy_data, ["class", "name"])
+                    df.at[index, "Classe d'isolation thermique"]  = Get_value_dictionnary(energy_data, ["thermalInsulation", "consumption", "name"])
+                    df.at[index, "Chauffage"]                     = energy_data.get("heatingType")
 
                 # In props/pageProps/detailData/realEstate/properties[0]/location
                 location_data = property_data.get("location")
                 if location_data:
                     
-                    self.df_property.at[index, "Pays"]          = Get_value_dictionnary(location_data, ["nation", "name"])
-                    self.df_property.at[index, "Province"]      = location_data.get("province")
-                    self.df_property.at[index, "City"]          = location_data.get("city")
-                    self.df_property.at[index, "Macrozone"]     = location_data.get("macrozone")
-                    self.df_property.at[index, "MacrozoneId"]   = location_data.get("macrozoneId")
-                    self.df_property.at[index, "Adresse"]       = location_data.get("address")
-                    self.df_property.at[index, "Numéro"]        = location_data.get("streetNumber")
-                    self.df_property.at[index, "Latitude"]      = location_data.get("latitude")
-                    self.df_property.at[index, "Longitude"]     = location_data.get("longitude")
+                    df.at[index, "Pays"]          = Get_value_dictionnary(location_data, ["nation", "name"])
+                    df.at[index, "Province"]      = location_data.get("province")
+                    df.at[index, "City"]          = location_data.get("city")
+                    df.at[index, "Macrozone"]     = location_data.get("macrozone")
+                    df.at[index, "MacrozoneId"]   = location_data.get("macrozoneId")
+                    df.at[index, "Adresse"]       = location_data.get("address")
+                    df.at[index, "Numéro"]        = location_data.get("streetNumber")
+                    df.at[index, "Latitude"]      = location_data.get("latitude")
+                    df.at[index, "Longitude"]     = location_data.get("longitude")
 
                 # In props/pageProps/detailData/realEstate/properties[0]/price
                 price_data = property_data.get("price")
                 if price_data:
                     
-                    self.df_property.at[index, "Prix"]      = price_data.get("value")
-                    self.df_property.at[index, "Prix min"]  = "".join(price_data.get("minValue").replace("€", "").split(" ")) if price_data.get("minValue") else None
-                    self.df_property.at[index, "Prix max"]  = "".join(price_data.get("maxValue").replace("€", "").split(" ")) if price_data.get("maxValue") else None
-                    self.df_property.at[index, "Prix/m2"]   = "".join(price_data.get("pricePerSquareMeter").replace("€/m²", "").split(" ")) if price_data.get("pricePerSquareMeter") else None
+                    df.at[index, "Prix"]      = price_data.get("value")
+                    df.at[index, "Prix min"]  = "".join(price_data.get("minValue").replace("€", "").split(" ")) if price_data.get("minValue") else None
+                    df.at[index, "Prix max"]  = "".join(price_data.get("maxValue").replace("€", "").split(" ")) if price_data.get("maxValue") else None
+                    df.at[index, "Prix/m2"]   = "".join(price_data.get("pricePerSquareMeter").replace("€/m²", "").split(" ")) if price_data.get("pricePerSquareMeter") else None
                 
             else:
 
@@ -390,7 +404,7 @@ class Immotop(Website_selenium):
             logging.warning("The data of {} were not scrapped.".format(url))
 
     ## Scrape property page ##
-    def __Scrape_property_data(self, url):
+    def __Scrape_property_data(self, url, df):
 
         # Get the source code
         source_code, _ = Web_page_source_code_robustification(url, 2, self.headers)
@@ -399,16 +413,16 @@ class Immotop(Website_selenium):
         if source_code:
 
             # First free index in the dataframe
-            index = len(self.df_property)
+            index = len(df)
 
             # Add the URL to the dataframe. If the source code was not scraped, that means that the url won't be added in the dataframe.
-            self.df_property.at[index, "URL"] = url
+            df.at[index, "URL"] = url
 
             # Search the tag 'script' containing the data
             data_json = self.__Get_json_data(source_code, url)
             if data_json:
 
-                self.__Transfer_dictio_to_dataframe(data_json, index, url)
+                self.__Transfer_dictio_to_dataframe(data_json, df, index, url)
 
             else:
 
@@ -422,9 +436,17 @@ class Immotop(Website_selenium):
 
         logging.info("Number of properties : {}.".format(len(self.dict_href_properties)))
 
-        for href_property in tqdm.tqdm(self.dict_href_properties, desc = "Scrape the data of each property"):
+        for href_property, is_parent in tqdm.tqdm(self.dict_href_properties.items(), desc = "Scrape the data of each property"):
 
-            self.__Scrape_property_data(href_property)
+            # The data of the properties "parent" are stored in a separated dataframe
+            if is_parent:
+
+                self.__Scrape_property_data(href_property, self.df_parents)
+
+            else:
+
+                self.__Scrape_property_data(href_property, self.df_property)
+
             time.sleep(1)
 
         logging.info("End to scrape property pages.\n")
@@ -437,5 +459,6 @@ class Immotop(Website_selenium):
         with pd.ExcelWriter(self.filename_output, engine = "xlsxwriter") as writer:
         
             self.df_property.to_excel(writer, sheet_name = "Propriétés", index = False)
+            self.df_parents.to_excel(writer, sheet_name = "Parents", index = False)
         
         logging.info("The dataframes were saved at '{}'.\n".format(self.filename_output))
