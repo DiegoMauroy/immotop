@@ -34,8 +34,8 @@ class Immotop(Website_selenium):
                         "Consommation d'énergie", "Classe d'isolation thermique", "Chauffage"
                     ]
         
-        self.df_property = pd.DataFrame(columns = columns)  # Dataframe to store data of the property, except the property "parent"
-        self.df_parents = pd.DataFrame(columns = columns.remove("ID parent"))   # Dataframe to store data of the property "parent"
+        self.df_property    = pd.DataFrame(columns = columns)                                           # Dataframe to store data of the property, except the property "parent"
+        self.df_parents     = pd.DataFrame(columns = [col for col in columns if col != "ID parent"])    # Dataframe to store data of the property "parent"
 
         # headers used by "requests"
         self.headers = {
