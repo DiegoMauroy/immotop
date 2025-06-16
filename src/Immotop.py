@@ -4,13 +4,13 @@ import tqdm
 import logging
 
 from Tools.Scrape import *
-from Tools.Tool_functions import *
+from Tools.Dictionnary_tools import *
 
 #### Class to scrape Propertyweb ####
 class Immotop(Website_selenium):
 
-    ## Initialization ##
-    def __init__(self, filename_output):
+    ## Initialization
+    def __init__(self, filename_output : str):
         
         self.filename_output        = filename_output       # filename of the output
         self.dict_href_properties   = {}                    # dictionnary of property hrefs (use a dictionary to avoid duplicates and keep the order)
@@ -42,12 +42,14 @@ class Immotop(Website_selenium):
                             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
                         }
         
-    ## Create urls to be scraped ##
-    ## json_create_url  => json containing the filters used to create the url ##
-    ## url_template     => template to create the url to be scraped ##
-    ## translate_to_url => dictionnary used to translate the filters into url to be scraped ##
-    ## Return a dictionnary where the key is the context of the url and the value is the url ##
-    def Create_url(self, json_create_url, url_template, translate_to_url):
+    ## Create urls to be scraped
+    ## Inputs :
+    ##  - json_create_url  : json containing the filters used to create the url
+    ##  - url_template     : template to create the url to be scraped
+    ##  - translate_to_url  : dictionnary used to translate the filters into url to be scraped
+    ## Outputs :
+    ##  - Return a dictionnary where the key is the context of the url and the value is the url
+    def Create_url(self, json_create_url : dict, url_template : str, translate_to_url : dict):
 
         urls = {}
 
@@ -122,8 +124,9 @@ class Immotop(Website_selenium):
         
         return urls
 
-    ## Get the number of pages in the URL ##
-    ## Return the number of pages ##
+    ## Get the number of pages in the URL
+    ## Outputs :
+    ##  - Return the number of pages (0 if there are no properties, 1 if there is only one page)
     def __Get_page_count(self):
 
         page_count = 0
@@ -132,11 +135,11 @@ class Immotop(Website_selenium):
         source_code = BeautifulSoup(self.driver.page_source, features = "lxml")
 
         # Check if the overview page contains properties
-        lis = source_code.find_all("li", {"class" : "nd-list__item in-searchLayoutListItem"})
+        lis = source_code.find_all("li", {"class" : "nd-list__item styles_in-searchLayoutListItem__y8aER"})
         if lis:
         
             # Search the tag containing the pages
-            div_pagination = source_code.find("div", {"class" : "in-pagination__list"})
+            div_pagination = source_code.find("div", {"class" : "styles_in-pagination__list__vZpLW"})
             if div_pagination:
 
                 # When there are many pages, the last page is not a <a> but a <div>. 
@@ -167,12 +170,12 @@ class Immotop(Website_selenium):
 
                 else:
 
-                    logging.warning("There are no <a> and <div> in the tag <div class='in-pagination__list'> in {}.".format(self.current_url))
+                    logging.warning("There are no <a> and <div> in the tag <div class='styles_in-pagination__list__vZpLW'> in {}.".format(self.current_url))
                     page_count = 1
 
             else:
 
-                logging.warning("The tag <div class='in-pagination__list'> doesn't exist in {}.".format(self.current_url))
+                logging.warning("The tag <div class='styles_in-pagination__list__vZpLW'> doesn't exist in {}.".format(self.current_url))
                 page_count = 1
 
         else:
@@ -183,9 +186,13 @@ class Immotop(Website_selenium):
         logging.info("Number of page : {}.".format(page_count))
         return page_count
     
-    ## Get the data contained in a tag 'script' with id='__NEXT_DATA__' ##
-    ## Return data in a dictionnary (None if data have not been found) ##
-    def __Get_json_data(self, source_code, url):
+    ## Get the data contained in a tag 'script' with id='__NEXT_DATA__'
+    ## Inputs :
+    ##  - source_code : source code of the page
+    ##  - url : url of the page
+    ## Outputs :
+    ##  - Return the data in a dictionnary (None if data have not been found)
+    def __Get_json_data(self, source_code : BeautifulSoup, url : str):
 
         # Search the tag <script id='__NEXT_DATA__'> containing the data
         script_data = source_code.find("script", {"id" : "__NEXT_DATA__"})
@@ -207,8 +214,10 @@ class Immotop(Website_selenium):
 
         return None
     
-    ## Get the url of "child" properties ##
-    def __Get_children_url(self, url):
+    ## Get the url of "child" properties
+    ## Inputs :
+    ##  - url : url of the property page to scrape
+    def __Get_children_url(self, url : str):
 
         # Get the source code
         source_code, _ = Web_page_source_code_robustification(url, 2, self.headers)
@@ -244,9 +253,11 @@ class Immotop(Website_selenium):
                 logging.warning("The script id='__NEXT_DATA__' was not found in {}.".format(url))
 
     
-    ## Scrape the overview page ##
-    ## The goal is to get the url of each property contained in the overview page ##
-    def __Scrape_overview_page(self, url):
+    ## Scrape the overview page
+    ## The goal is to get the url of each property contained in the overview page
+    ## Inputs :
+    ##  - url : url of the overview page to scrape
+    def __Scrape_overview_page(self, url : str):
 
         # Access to the website
         self.Access_website(url)
@@ -258,12 +269,12 @@ class Immotop(Website_selenium):
         source_code = BeautifulSoup(self.driver.page_source, features = "lxml")
 
         # Search the url of each property contained in the overview page
-        lis = source_code.find_all("li", {"class" : "nd-list__item in-searchLayoutListItem"})
+        lis = source_code.find_all("li", {"class" : "nd-list__item styles_in-searchLayoutListItem__y8aER"})
         if lis:
 
             for index, li in enumerate(lis):
 
-                title = li.find("a", {"class" : "in-listingCardTitle"})
+                title = li.find("a", {"class" : "styles_in-listingCardTitle__Wy437"})
                 if title:
 
                     # Get url of the page
@@ -271,7 +282,7 @@ class Immotop(Website_selenium):
                     if href:
 
                         # If the property has "child" properties, scrape its page to get the url of the children 
-                        if li.find("div", {"class" : "nd-strip is-spaced in-listingCardUnits"}):
+                        if li.find("div", {"class" : "nd-strip is-spaced styles_in-listingCardUnits___DZU3"}):
 
                             # Add the property "parent"
                             if href not in self.dict_href_properties:
@@ -290,19 +301,21 @@ class Immotop(Website_selenium):
 
                     else:
 
-                        logging.warning("The attribute 'href' doesn't exist in the tag <a class='in-listingCardTitle'> : property {}/{} in {}.".format(index+1, len(lis), self.current_url))
+                        logging.warning("The attribute 'href' doesn't exist in the tag <a class='styles_in-listingCardTitle__Wy437'> : property {}/{} in {}.".format(index+1, len(lis), self.current_url))
                         
                 else:
 
-                    logging.warning("There is no tag <a class='in-listingCardTitle'> in the tag <li class='nd-list__item in-searchLayoutListItem'> : property {}/{} in {}.".format(index+1, len(lis), self.current_url))
+                    logging.warning("There is no tag <a class='styles_in-listingCardTitle__Wy437'> in the tag <li class='nd-list__item styles_in-searchLayoutListItem__y8aER'> : property {}/{} in {}.".format(index+1, len(lis), self.current_url))
 
         else:
 
-            logging.warning("The tag <li class='nd-list__item in-searchLayoutListItem'> doesn't exist in {}.".format(self.current_url))
+            logging.warning("The tag <li class='nd-list__item styles_in-searchLayoutListItem__y8aER'> doesn't exist in {}.".format(self.current_url))
         
-    ## Scrape the overview pages to get the url of each property ##
-    ## REMARK : use selenium to scrape the overview pages because, for some categories, requests is not enough to get the full source code ##
-    def Scrape_overview_pages(self, url):
+    ## Scrape the overview pages to get the url of each property
+    ## Inputs : 
+    ##  - url : url of the overview page to scrape
+    ## REMARK : use selenium to scrape the overview pages because, for some categories, requests is not enough to get the full source code
+    def Scrape_overview_pages(self, url : str):
 
         logging.info("Start to scrape overview pages.")
         print("Start to scrape overview pages.")
@@ -329,8 +342,13 @@ class Immotop(Website_selenium):
         print("End to scrape overview pages.\n")
 
     
-    ## Transfer data from dictionnary to dataframe ##
-    def __Transfer_dictio_to_dataframe(self, dict_data, df, index, url):
+    ## Transfer data from dictionnary to dataframe
+    ## Inputs :
+    ##  - dict_data : dictionnary containing the data to transfer
+    ##  - df        : dataframe to fill
+    ##  - index     : index of the row to fill in the dataframe
+    ##  - url       : url of the page to scrape
+    def __Transfer_dictio_to_dataframe(self, dict_data : dict, df : pd.DataFrame, index : int, url : str):
 
         # Get parent ID
         if "ID parent" in df.columns:
@@ -403,8 +421,11 @@ class Immotop(Website_selenium):
 
             logging.warning("The data of {} were not scrapped.".format(url))
 
-    ## Scrape property page ##
-    def __Scrape_property_data(self, url, df):
+    ## Scrape property page
+    ## Inputs :
+    ##  - url : url of the property page to scrape
+    ##  - df  : dataframe to fill with the data of the property
+    def __Scrape_property_data(self, url : str, df : pd.DataFrame):
 
         # Get the source code
         source_code, _ = Web_page_source_code_robustification(url, 2, self.headers)
@@ -428,7 +449,7 @@ class Immotop(Website_selenium):
 
                 logging.warning("The script id='__NEXT_DATA__' was not found in {}.".format(url))
 
-    ## Scrape the property pages ##
+    ## Scrape the property pages
     def Scrape_property_pages(self):
 
         logging.info("Start to scrape property pages.")
@@ -452,7 +473,7 @@ class Immotop(Website_selenium):
         logging.info("End to scrape property pages.\n")
         print("End to scrape property pages.\n")
 
-    ## Save data ##
+    ## Save data in Excel file
     def Save_df(self):
 
         # Write the xlsx

@@ -3,7 +3,8 @@ import time
 from datetime import timedelta
 
 from Immotop import *
-from Tools.Tool_functions import *
+from Tools.Files_tools import *
+from Tools.Dictionnary_tools import *
 
 #### Main ####
 if __name__ == "__main__":
@@ -13,12 +14,12 @@ if __name__ == "__main__":
     start_time_format = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime(start_time))
 
     # URL
-    url_base = "https://www.immotop.lu/"
+    url_base     = "https://www.immotop.lu/"
     url_template = "https://www.immotop.lu/search-list/?{statut}{type}{subtype}&criterio=rilevanza&__lang=fr{location}"
 
     # Manage folders
-    Check_create_folder("LOG")
-    Check_create_folder("Outputs")
+    Create_folder("LOG")
+    Create_folder("Outputs")
 
     # Create an object FileHandler to manage the writing of the logs in a file
     logging.basicConfig(filename='LOG/{}.log'.format(start_time_format), 
@@ -26,24 +27,23 @@ if __name__ == "__main__":
                         format='%(asctime)s - %(levelname)s - %(message)s',
                         force=True)
     
-    # Get user parameters #
+    # Get user parameters
     json_path = input("Enter the path of the json file : ")
     data_json = Read_json(json_path)
 
     # dictionnary used to translate the filters into url to be scraped
-    translate_to_url_path = Get_path_exe_or_local("translate_to_url.json", "Inputs")
-    translate_to_url = Read_json(translate_to_url_path)
+    translate_to_url = Read_json("translate_to_url.json") if Exe_or_local() else Read_json("Inputs/translate_to_url.json")
 
     # Initialize an instance of immotop
     immotop = Immotop("Outputs/Immotop_{}.xlsx".format(start_time_format))
 
-    # dictionnary of url to scrape
+    # Dictionary of scraped urls
     scraped_urls = immotop.Create_url(data_json, url_template, translate_to_url)
 
     # Open a navigator
     immotop.Open_webdriver()   
 
-    # Scrape overview pages to find the url of each property #
+    # Scrape overview pages to find the url of each property
     for url_context, scraped_url in scraped_urls.items():
 
         print("Scrape {} : {}".format(url_context, scraped_url))
