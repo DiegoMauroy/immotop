@@ -3,6 +3,7 @@ import time
 from datetime import timedelta
 
 from Immotop import *
+from Config_data_json import ConfigModel
 from Tools.Files_tools import *
 from Tools.Dictionnary_tools import *
 
@@ -14,7 +15,6 @@ if __name__ == "__main__":
     start_time_format = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime(start_time))
 
     # URL
-    url_base     = "https://www.immotop.lu/"
     url_template = "https://www.immotop.lu/search-list/?{statut}{type}{subtype}&criterio=rilevanza&__lang=fr{location}"
 
     # Manage folders
@@ -29,15 +29,34 @@ if __name__ == "__main__":
     
     # Get user parameters
     json_path = input("Enter the path of the json file : ")
-    data_json = Read_json(json_path)
 
-    # dictionnary used to translate the filters into url to be scraped
-    translate_to_url = Read_json("translate_to_url.json") if Exe_or_local() else Read_json("Inputs/translate_to_url.json")
+    # Read the json file if it exists
+    if Check_file(json_path, ".json"):
+
+        data_json = Read_json(json_path)
+
+    else:
+
+        logging.error("This path doesn't exist : '{path}'.".format(path = json_path))
+        exit(0)
+
+    # Check the content of the json file
+    try:
+    
+        config = Check_dictionnary_structure(data_json, ConfigModel)
+
+    except Exception as e:
+
+        logging.error(e)
+        exit(1)
+
+    # Dictionnary used to create the url to scrape from the config file
+    translate_to_url = Read_json(os.path.join(sys._MEIPASS, "translate_to_url.json")) if Exe_or_local() else Read_json("Inputs/translate_to_url.json")
 
     # Initialize an instance of immotop
     immotop = Immotop("Outputs/Immotop_{}.xlsx".format(start_time_format))
 
-    # Dictionary of scraped urls
+    # Dictionary of urls to scrape
     scraped_urls = immotop.Create_url(data_json, url_template, translate_to_url)
 
     # Open a navigator
@@ -46,7 +65,7 @@ if __name__ == "__main__":
     # Scrape overview pages to find the url of each property
     for url_context, scraped_url in scraped_urls.items():
 
-        print("Scrape {} : {}".format(url_context, scraped_url))
+        print("\nScrape {} : {}".format(url_context, scraped_url))
         logging.info("Scrape {} : {}".format(url_context, scraped_url))
 
         immotop.Scrape_overview_pages(scraped_url)
