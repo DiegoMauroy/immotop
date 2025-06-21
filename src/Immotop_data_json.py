@@ -129,8 +129,8 @@ class ParentDataJson(BaseModelWithIgnoreExtra):
             if field_type is int or Is_optional_of(field_type, int):
 
                 data = Get_value_dictionnary(values, path)
-                
-                prepared_values[field] = Convert_to_int(data, True)
+
+                prepared_values[field] = Convert_to_int(data, True) if data is not None else data
                 
             # Manage float fields
             elif Is_optional_of(field_type, float):
@@ -140,12 +140,12 @@ class ParentDataJson(BaseModelWithIgnoreExtra):
                 if field in ["price", "price_m2", "min_price", "max_price", "surface"]:
 
                     # If the field is a price or surface, clean the data before parsing it
-                    prepared_values[field] = Convert_to_float(data, True)
+                    prepared_values[field] = Convert_to_float(data, True) if data is not None else data
 
                 else:
 
                     # For other float fields, parse the data without cleaning it
-                    prepared_values[field] = Convert_to_float(data, False)
+                    prepared_values[field] = Convert_to_float(data, False) if data is not None else data
 
             # Manage datetime fields
             elif Is_optional_of(field_type, datetime):
@@ -156,7 +156,7 @@ class ParentDataJson(BaseModelWithIgnoreExtra):
 
                     # find all dates in the data
                     dates = re.findall(r"\b\d{2}/\d{2}/\d{2}(?:\d{2})?\b", data)
-                    if dates:
+                    if len(dates) > 0:
 
                         # If the field is a date, parse it
                         prepared_values[field] = Convert_to_datetime(dates[0], ["%d/%m/%Y", "%d/%m/%y"], 1000)

@@ -63,6 +63,7 @@ class Immotop(Website_selenium):
         if not locations or not status:
 
             logging.error("There is no location/statut to scrape. Check your 'config.json'.")
+            exit(2)
 
         # Create the urls according to the type of property to be scraped
         for key1, value1 in json_create_url.items():
@@ -317,7 +318,7 @@ class Immotop(Website_selenium):
 
         logging.info("End to scrape overview pages.\n")
         print("End to scrape overview pages.\n")
-        
+
 
     ## Scrape property page
     ## Inputs :
@@ -352,7 +353,7 @@ class Immotop(Website_selenium):
 
                 except Exception as e:
 
-                    logging.error("Error during the scraping of '{url}' : {e}".format(url = url, e = e))
+                    logging.warning("Error during the scraping of '{url}' : {e}".format(url = url, e = e))
 
             else:
 
