@@ -193,6 +193,8 @@ class PropertyDataJson(ParentPropertyCommonDataJson):
 
     surface        : Optional[float] 
 
+    garage         : Optional[str]
+
     mapping_immotop_to_dataframe = {
                                         **ParentPropertyCommonDataJson.mapping_immotop_to_dataframe,
                                         "id_parent"      : ["props", "pageProps", "parentId"],
@@ -205,7 +207,9 @@ class PropertyDataJson(ParentPropertyCommonDataJson):
                                         "floor"          : ["props", "pageProps", "detailData", "realEstate", "properties", "floor", "value"],
                                         "elevator"       : ["props", "pageProps", "detailData", "realEstate", "properties", "elevator"],
 
-                                        "surface"        : ["props", "pageProps", "detailData", "realEstate", "properties", "surfaceValue"]
+                                        "surface"        : ["props", "pageProps", "detailData", "realEstate", "properties", "surfaceValue"],
+
+                                        "garage"         : ["props", "pageProps", "detailData", "realEstate", "properties", "garage"]
                                     }
     
 ## Class to prepare data for the dataframe "Parent"
