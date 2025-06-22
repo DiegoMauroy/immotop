@@ -11,7 +11,7 @@ from Tools.Pydantic import *
 ########################################
 
 ## Class to prepare data for the dataframe "Parent"
-class ParentDataJson(BaseModelWithIgnoreExtra):
+class ParentPropertyCommonDataJson(BaseModelWithIgnoreExtra):
 
     url                     : str
     id                      : int
@@ -30,21 +30,10 @@ class ParentDataJson(BaseModelWithIgnoreExtra):
 
     status                  : Optional[str]
     type                    : Optional[str]
-    new_project             : Optional[bool]
     availability            : Optional[str]
     building_year           : Optional[int]
 
-    price                   : Optional[float]
-    price_m2                : Optional[float]
-    min_price               : Optional[float]
-    max_price               : Optional[float]
-    
-    surface                 : Optional[float]
-    bedroom_count           : Optional[int]
-    bathroom_count          : Optional[int]
     floor_count             : Optional[int]
-    floor                   : Optional[str]
-    elevator                : Optional[bool]
 
     energy_consumption      : Optional[str]
     thermal_isolation_class : Optional[str]
@@ -71,21 +60,10 @@ class ParentDataJson(BaseModelWithIgnoreExtra):
 
                                                                                             "status"                  : ["props", "pageProps", "detailData", "realEstate", "contractValue"],
                                                                                             "type"                    : ["props", "pageProps", "detailData", "realEstate", "properties", "typologyValue"],
-                                                                                            "new_project"             : ["props", "pageProps", "detailData", "realEstate", "isNew"],
                                                                                             "availability"            : ["props", "pageProps", "detailData", "realEstate", "properties", "availability"],
                                                                                             "building_year"           : ["props", "pageProps", "detailData", "realEstate", "properties", "buildingYear"],
 
-                                                                                            "price"                   : ["props", "pageProps", "detailData", "realEstate", "properties", "price", "value"],
-                                                                                            "price_m2"                : ["props", "pageProps", "detailData", "realEstate", "properties", "price", "pricePerSquareMeter"],
-                                                                                            "min_price"               : ["props", "pageProps", "detailData", "realEstate", "properties", "price", "minValue"],
-                                                                                            "max_price"               : ["props", "pageProps", "detailData", "realEstate", "properties", "price", "maxValue"],
-
-                                                                                            "surface"                 : ["props", "pageProps", "detailData", "realEstate", "properties", "surfaceValue"],
-                                                                                            "bedroom_count"           : ["props", "pageProps", "detailData", "realEstate", "properties", "bedRoomsNumber"],
-                                                                                            "bathroom_count"          : ["props", "pageProps", "detailData", "realEstate", "properties", "bathrooms"],
                                                                                             "floor_count"             : ["props", "pageProps", "detailData", "realEstate", "properties", "floors"],
-                                                                                            "floor"                   : ["props", "pageProps", "detailData", "realEstate", "properties", "floor", "value"],
-                                                                                            "elevator"                : ["props", "pageProps", "detailData", "realEstate", "properties", "elevator"],
 
                                                                                             "energy_consumption"      : ["props", "pageProps", "detailData", "realEstate", "properties", "energy", "class", "name"],
                                                                                             "thermal_isolation_class" : ["props", "pageProps", "detailData", "realEstate", "properties", "energy", "thermalInsulation", "consumption", "name"],
@@ -200,12 +178,44 @@ class ParentDataJson(BaseModelWithIgnoreExtra):
 
         return mapped_values
     
-## Class to prepare data for the dataframe "Property" (depend on Parent)
-class PropertyDataJson(ParentDataJson):
+## Class to prepare data for the dataframe "Property"
+class PropertyDataJson(ParentPropertyCommonDataJson):
 
-    id_parent : Optional[int]
+    id_parent      : Optional[int]
+
+    price          : Optional[float]
+    price_m2       : Optional[float]
+
+    bedroom_count  : Optional[int]
+    bathroom_count : Optional[int]
+    floor          : Optional[str]
+    elevator       : Optional[bool] 
+
+    surface        : Optional[float] 
 
     mapping_immotop_to_dataframe = {
-                                        **ParentDataJson.mapping_immotop_to_dataframe,
-                                        "id_parent" : ["props", "pageProps", "parentId"]
+                                        **ParentPropertyCommonDataJson.mapping_immotop_to_dataframe,
+                                        "id_parent"      : ["props", "pageProps", "parentId"],
+
+                                        "price"          : ["props", "pageProps", "detailData", "realEstate", "properties", "price", "value"],
+                                        "price_m2"       : ["props", "pageProps", "detailData", "realEstate", "properties", "price", "pricePerSquareMeter"],
+
+                                        "bedroom_count"  : ["props", "pageProps", "detailData", "realEstate", "properties", "bedRoomsNumber"],
+                                        "bathroom_count" : ["props", "pageProps", "detailData", "realEstate", "properties", "bathrooms"],
+                                        "floor"          : ["props", "pageProps", "detailData", "realEstate", "properties", "floor", "value"],
+                                        "elevator"       : ["props", "pageProps", "detailData", "realEstate", "properties", "elevator"],
+
+                                        "surface"        : ["props", "pageProps", "detailData", "realEstate", "properties", "surfaceValue"]
+                                    }
+    
+## Class to prepare data for the dataframe "Parent"
+class ParentDataJson(ParentPropertyCommonDataJson):
+
+    min_price : Optional[float]
+    max_price : Optional[float]
+
+    mapping_immotop_to_dataframe = {
+                                        **ParentPropertyCommonDataJson.mapping_immotop_to_dataframe,
+                                        "min_price" : ["props", "pageProps", "detailData", "realEstate", "properties", "price", "minValue"],
+                                        "max_price" : ["props", "pageProps", "detailData", "realEstate", "properties", "price", "maxValue"]
                                     }
