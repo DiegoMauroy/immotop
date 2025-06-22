@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['..\\src\\Main.py', '..\\src\\Immotop.py', '..\\src\\Tools\\Scrape.py', '..\\src\\Tools\\Tool_functions.py'],
+    ['..\\src\\Main.py', '..\\src\\Immotop.py', '..\\src\\Immotop_data_json.py', '..\\src\\Config_data_json.py', '..\\src\\Tools\\Scrape.py', '..\\src\\Tools\\Files_tools.py', '..\\src\\Tools\\Dictionnary_tools.py', '..\\src\\Tools\\Pydantic.py', '..\\src\\Tools\\Converts.py'],
     pathex=[],
     binaries=[],
     datas=[('..\\Inputs\\translate_to_url.json', ".")],
@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='Immotop_1_0',
+    name='Immotop_1_1',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
