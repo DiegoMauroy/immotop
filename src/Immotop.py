@@ -219,9 +219,9 @@ class Immotop(Website_selenium):
                 properties_data = Get_value_dictionnary(data_json, ["props", "pageProps", "detailData", "realEstate", "properties"])
                 if properties_data:
 
-                    for property in properties_data:
+                    for properti in properties_data:
 
-                        id = property.get("id")
+                        id = properti.get("id")
 
                         # Check that it is not the id of the "Parent" property
                         if id not in url:
@@ -385,29 +385,13 @@ class Immotop(Website_selenium):
         logging.info("End to scrape property pages.\n")
         print("End to scrape property pages.\n")
 
-    ## Remove the timezone from the datetime columns in the DataFrame.
-    ## This is necessary because the timezone information can cause issues when saving to Excel.
-    ## Inputs :
-    ##  - df : dataframe to fill with the data of the property
-    def Remove_timezone(self, df : pd.DataFrame):
-        
-        # Convert datetime columns to naive datetime (without timezone)
-        for col in df.columns:
-            
-            # Check if the column is datetime type
-            if pd.api.types.is_datetime64tz_dtype(df[col]):
-                
-                df[col] = df[col].dt.tz_localize(None)
-
-        return df
-
     ## Save data in Excel file
     def Save_df(self):
 
         # Write the xlsx
         with pd.ExcelWriter(self.filename_output, engine = "xlsxwriter") as writer:
         
-            self.Remove_timezone(self.df_properties).to_excel(writer, sheet_name = "Propriétés", index = False)
-            self.Remove_timezone(self.df_parents).to_excel(writer, sheet_name = "Parents", index = False)
+            Remove_timezone_from_dataframe(self.df_properties).to_excel(writer, sheet_name = "Propriétés", index = False)
+            Remove_timezone_from_dataframe(self.df_parents).to_excel(writer, sheet_name = "Parents", index = False)
         
         logging.info("The dataframes were saved at '{}'.\n".format(self.filename_output))

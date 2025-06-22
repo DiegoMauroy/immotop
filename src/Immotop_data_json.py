@@ -97,8 +97,12 @@ class ParentDataJson(BaseModelWithIgnoreExtra):
     ## Format the input dictionnary.
     ## This function replaces the list associated to the key 'properties' by the first element of this list.
     ## Thanks to that, mapping fonction can use 'Get_value_dictionnary()' to browse the input data.
+    ## Input : 
+    ##  - values : dictionnary containing the input data
+    ## Output : 
+    ##  - dictonnary containing the formated data
     @classmethod
-    def format_dictionnary(cls, values : dict):
+    def Format_dictionnary(cls, values : dict):
 
         # 'properties' is a list, only the first item is interesting
         properties = Get_value_dictionnary(values, ["props", "pageProps", "detailData", "realEstate", "properties"])
@@ -116,8 +120,12 @@ class ParentDataJson(BaseModelWithIgnoreExtra):
             raise ValueError("The key 'properties' doesn't exist or is not a list or a dictionnary.")
 
     ## Mapping (dictio -> pydantic)
+    ## Input : 
+    ##  - values : dictionnary containing the input data
+    ## Output : 
+    ##  - dictonnary containing the data extracted to the input dictionnary
     @classmethod
-    def mapping(cls, values : dict):
+    def Mapping(cls, values : dict):
 
         prepared_values = {}
         for field, path in cls.mapping_immotop_to_dataframe.items():
@@ -177,14 +185,18 @@ class ParentDataJson(BaseModelWithIgnoreExtra):
         return prepared_values
     
     ## Prepare data
+    ## Input : 
+    ##  - values : dictionnary containing the input data
+    ## Output : 
+    ##  - dictonnary containing the data prepared for the pydantic model
     @model_validator(mode = 'before')
-    def convert_dictio_to_pydantic(cls, values : dict):
+    def Convert_dictio_to_pydantic(cls, values : dict):
 
         # format data
-        formated_values = cls.format_dictionnary(values)
+        formated_values = cls.Format_dictionnary(values)
 
         # map data
-        mapped_values = cls.mapping(formated_values)
+        mapped_values = cls.Mapping(formated_values)
 
         return mapped_values
     
