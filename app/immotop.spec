@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='Immotop_1_1',
+    name='Immotop_1_2',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
