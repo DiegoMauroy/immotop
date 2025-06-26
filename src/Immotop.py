@@ -2,6 +2,7 @@ import json
 import pandas as pd
 import tqdm
 import logging
+import random
 from pydantic import BaseModel
 
 from Immotop_data_json import ParentDataJson, PropertyDataJson
@@ -316,6 +317,8 @@ class Immotop(Website_selenium):
             # Scrape urls
             self.__Scrape_overview_page("{}&pag={}".format(url, str(page)))
 
+            time.sleep(min(random.random() * 3, 1))
+
         logging.info("End to scrape overview pages.\n")
         print("End to scrape overview pages.\n")
 
@@ -380,7 +383,7 @@ class Immotop(Website_selenium):
 
                 self.df_properties = self.__Scrape_property_data(href_property, self.df_properties, PropertyDataJson)
 
-            time.sleep(1)
+            time.sleep(min(random.random() * 3, 1))
 
         logging.info("End to scrape property pages.\n")
         print("End to scrape property pages.\n")
